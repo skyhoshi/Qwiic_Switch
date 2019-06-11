@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="9.3.0">
+<eagle version="9.4.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="yes"/>
@@ -165,21 +165,21 @@
 <wire x1="0" y1="0" x2="30.48" y2="0" width="0.1524" layer="20"/>
 <wire x1="30.48" y1="0" x2="30.48" y2="20.32" width="0.1524" layer="20"/>
 <wire x1="30.48" y1="20.32" x2="22.479" y2="20.32" width="0.1524" layer="20"/>
-<wire x1="22.479" y1="20.32" x2="22.479" y2="18.923" width="0.1524" layer="20"/>
-<wire x1="22.479" y1="18.923" x2="29.718" y2="18.923" width="0.1524" layer="20"/>
-<wire x1="29.718" y1="18.923" x2="29.718" y2="18.161" width="0.1524" layer="20"/>
-<wire x1="29.718" y1="18.161" x2="22.479" y2="18.161" width="0.1524" layer="20"/>
-<wire x1="22.479" y1="18.161" x2="22.479" y2="17.653" width="0.1524" layer="20"/>
+<wire x1="22.479" y1="20.32" x2="22.479" y2="18.9738" width="0.1524" layer="20"/>
+<wire x1="22.479" y1="18.9738" x2="29.718" y2="18.9738" width="0.1524" layer="20"/>
+<wire x1="29.718" y1="18.9738" x2="29.718" y2="18.1102" width="0.1524" layer="20"/>
+<wire x1="29.718" y1="18.1102" x2="22.479" y2="18.1102" width="0.1524" layer="20"/>
+<wire x1="22.479" y1="18.1102" x2="22.479" y2="17.653" width="0.1524" layer="20"/>
 <wire x1="22.479" y1="17.653" x2="19.431" y2="17.653" width="0.1524" layer="20"/>
 <wire x1="16.51" y1="13.589" x2="9.652" y2="13.589" width="0.1524" layer="20"/>
-<wire x1="9.652" y1="13.589" x2="9.652" y2="11.557" width="0.1524" layer="20"/>
-<wire x1="9.652" y1="11.557" x2="16.256" y2="11.557" width="0.1524" layer="20"/>
-<wire x1="16.256" y1="11.557" x2="16.256" y2="10.795" width="0.1524" layer="20"/>
-<wire x1="16.256" y1="10.795" x2="9.652" y2="10.795" width="0.1524" layer="20"/>
-<wire x1="9.652" y1="10.795" x2="9.652" y2="10.414" width="0.1524" layer="20"/>
+<wire x1="9.652" y1="13.589" x2="9.652" y2="11.6078" width="0.1524" layer="20"/>
+<wire x1="9.652" y1="11.6078" x2="16.256" y2="11.6078" width="0.1524" layer="20"/>
+<wire x1="16.256" y1="11.6078" x2="16.256" y2="10.7442" width="0.1524" layer="20"/>
+<wire x1="16.256" y1="10.7442" x2="9.652" y2="10.7442" width="0.1524" layer="20"/>
+<wire x1="9.652" y1="10.7442" x2="9.652" y2="10.414" width="0.1524" layer="20"/>
 <wire x1="9.652" y1="10.414" x2="0" y2="10.414" width="0.1524" layer="20"/>
 <wire x1="0" y1="10.414" x2="0" y2="0" width="0.1524" layer="20"/>
-<text x="1.27" y="3.81" size="1.27" layer="16" font="vector" ratio="15" rot="SMR90" align="center">x01a</text>
+<text x="1.27" y="3.81" size="1.27" layer="16" font="vector" ratio="15" rot="SMR90" align="center">x01c</text>
 <wire x1="23.876" y1="17.653" x2="28.956" y2="17.653" width="1.016" layer="29"/>
 <wire x1="23.876" y1="19.431" x2="28.956" y2="19.431" width="1.016" layer="29"/>
 <wire x1="10.922" y1="10.287" x2="15.875" y2="10.287" width="1.016" layer="29"/>
@@ -187,6 +187,7 @@
 <wire x1="16.51" y1="13.589" x2="19.431" y2="16.637" width="0.1524" layer="20" curve="95.603639"/>
 <wire x1="19.431" y1="16.637" x2="19.431" y2="17.653" width="0.1524" layer="20"/>
 <text x="10.16" y="16.51" size="1.016" layer="46" font="vector" ratio="15" align="center">Route Out</text>
+<dimension x1="9.652" y1="11.6078" x2="9.652" y2="10.7442" x3="8.509" y3="11.176" textsize="1.778" textratio="15" layer="1" unit="inch" precision="4"/>
 </plain>
 <libraries>
 <library name="SparkFun-Capacitors">
@@ -3410,11 +3411,11 @@ These rules have been curated by SparkFuns DFM commitee. After doing much resear
 <element name="U$3" library="buzzard_labels (3)" package="LED2" value="" x="22.86" y="1.651" smashed="yes" rot="R90"/>
 <element name="U$19" library="buzzard_labels (3)" package="LED2" value="" x="22.86" y="1.651" smashed="yes" rot="MR90"/>
 <element name="U$21" library="buzzard_labels (3)" package="STAT1" value="" x="0.381" y="8.89" smashed="yes"/>
-<element name="U$1" library="SparkFun-Aesthetics" package="QWIIC_5.5MM" value="" x="27.432" y="8.255" smashed="yes"/>
-<element name="U$2" library="buzzard_labels (4)" package="QWIIC0" value="" x="8.636" y="9.017" smashed="yes"/>
-<element name="U$20" library="buzzard_labels (4)" package="QWIIC0" value="" x="6.858" y="8.89" smashed="yes" rot="MR0"/>
-<element name="U$23" library="buzzard_labels (4)" package="BUTTON1" value="" x="12.7" y="9.017" smashed="yes"/>
-<element name="U$24" library="buzzard_labels (4)" package="BUTTON1" value="" x="7.239" y="7.366" smashed="yes" rot="MR0"/>
+<element name="U$1" library="buzzard_labels (4)" package="QWIIC0" value="" x="8.636" y="9.017" smashed="yes"/>
+<element name="U$2" library="buzzard_labels (4)" package="BUTTON1" value="" x="12.7" y="9.017" smashed="yes"/>
+<element name="U$20" library="buzzard_labels (4)" package="BUTTON1" value="" x="6.858" y="6.477" smashed="yes" rot="MR0"/>
+<element name="U$23" library="buzzard_labels (4)" package="QWIIC0" value="" x="6.35" y="7.874" smashed="yes" rot="MR0"/>
+<element name="U$24" library="SparkFun-Aesthetics" package="QWIIC_5.5MM" value="" x="27.305" y="8.255" smashed="yes"/>
 </elements>
 <signals>
 <signal name="GND">

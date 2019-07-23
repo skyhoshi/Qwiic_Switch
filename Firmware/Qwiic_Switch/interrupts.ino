@@ -27,32 +27,27 @@ void receiveEvent(int numberOfBytesReceived)
 
   //If the user has zero'd out one of the time registers then zero out then advance the tail
   //and load the next event
-  if (registerMap.timeSinceLastButtonPressed == 0)
-  {
-    if (buttonStackPressedTail != buttonStackPressedHead)
-    {
-      buttonStackPressedTail++;
-      buttonStackPressedTail %= BUTTON_STACK_SIZE;
-      registerMap.timeSinceLastButtonPressed = buttonTimePressedStack[buttonStackPressedTail];
-    }
+  if (registerMap.timeSinceLastButtonPressed == 0){
+    registerMap.timeSinceLastButtonPressed = ButtonPressed.pop(); //Update the register with the next-oldest timestamp
+
+    //Update the status register with the state of the ButtonPressed buffer
+    bitWrite(registerMap.status, statusButtonPressedBufferEmptyBit, ButtonPressed.isEmpty());
+    bitWrite(registerMap.status, statusButtonPressedBufferFullBit, ButtonPressed.isFull());
   }
 
-  if (registerMap.timeSinceLastButtonClicked == 0)
-  {
-    if (buttonStackClickedTail != buttonStackClickedHead)
-    {
-      buttonStackClickedTail++;
-      buttonStackClickedTail %= BUTTON_STACK_SIZE;
-      registerMap.timeSinceLastButtonClicked = buttonTimeClickedStack[buttonStackClickedTail];
-    }
+  if (registerMap.timeSinceLastButtonClicked == 0){
+    registerMap.timeSinceLastButtonClicked = ButtonClicked.pop();
+
+    //Update the status register with the state of the ButtonClicked buffer
+    bitWrite(registerMap.status, statusButtonClickedBufferEmptyBit, ButtonClicked.isEmpty());
+    bitWrite(registerMap.status, statusButtonClickedBufferFullBit, ButtonClicked.isFull());
   }
 
   if (interruptState == STATE_INT_INDICATED)
   {
     //If the user has cleared all the interrupt bits then clear interrupt pin
-    if ( (registerMap.status & (1 << statusButtonClickedBit)) == 0
-         && (registerMap.status & (1 << statusButtonPressedBit)) == 0
-       )
+    if ( !bitRead(registerMap.status, statusButtonPressedBit) //ask nate: is this the right register? should it be the interruptEnable register
+        && !bitRead(registerMap.status, statusButtonClickedBit) )
     {
       //This will set the int pin to high impedance (aka pulled high by external resistor)
       digitalWrite(interruptPin, LOW); //Push pin to disable internal pull-ups
@@ -71,49 +66,61 @@ void receiveEvent(int numberOfBytesReceived)
 //While we are sending bytes we may have to do some calculations
 void requestEvent()
 {
-  //Calculate time stamps before we start sending bytes via I2C
-  if (buttonTimePressedStack[buttonStackPressedTail] > 0)
-    registerMap.timeSinceLastButtonPressed = millis() - buttonTimePressedStack[buttonStackPressedTail];
+  bitWrite(registerMap.status, statusButtonPressedBit, !digitalRead(switchPin));
 
-  if (buttonTimePressedStack[buttonStackClickedTail] > 0)
-    registerMap.timeSinceLastButtonClicked = millis() - buttonTimeClickedStack[buttonStackClickedTail];
+  //Calculate time stamps before we start sending bytes via I2C
+  if (ButtonPressed.back() > 0)
+    registerMap.timeSinceLastButtonPressed = millis() - ButtonPressed.back();
+
+  if (ButtonClicked.back() > 0)
+    registerMap.timeSinceLastButtonClicked = millis() - ButtonClicked.back();
 
   //This will write the entire contents of the register map struct starting from
   //the register the user requested, and when it reaches the end the master
   //will read 0xFFs.
+
   Wire.write((registerPointer + registerNumber), sizeof(memoryMap) - registerNumber);
 }
 
 //Called any time the pin changes state
 void buttonInterrupt()
 {
-  delay(registerMap.buttonDebounceTime); //Software debounce
-
+  //delay(registerMap.buttonDebounceTime); //Software debounce
+  if(!ButtonPressed.isEmpty()){
+    if ( millis() < (10 + ButtonPressed.front()) ){
+      return;
+    }
+  }
+ 
   interruptCount++; //For debug
 
-  registerMap.status ^= (1 << statusButtonPressedBit); //Toggle the pressed bit
-  buttonTimePressedStack[buttonStackPressedHead++] = millis();
-  buttonStackPressedHead %= BUTTON_STACK_SIZE;
+  bitWrite(registerMap.status, statusButtonPressedBit, !digitalRead(switchPin));
 
-  if (digitalRead(switchPin) == LOW) //User has released the button, we have completed a click cycle
+  ButtonPressed.push(millis());
+  bitWrite(registerMap.status, statusButtonPressedBufferEmptyBit, ButtonPressed.isEmpty());
+  bitWrite(registerMap.status, statusButtonPressedBufferFullBit, ButtonPressed.isFull());
+
+  if (digitalRead(switchPin) == HIGH) //User has released the button, we have completed a click cycle
   {
-    registerMap.status |= (1 << statusButtonClickedBit); //Set the clicked bit
-    buttonTimeClickedStack[buttonStackClickedHead++] = millis();
-    buttonStackClickedHead %= BUTTON_STACK_SIZE;
+    bitWrite(registerMap.status, statusButtonClickedBit, 1);
+    bitWrite(registerMap.status, statusButtonClickedBufferEmptyBit, ButtonClicked.isEmpty());
+    bitWrite(registerMap.status, statusButtonClickedBufferFullBit, ButtonClicked.isFull());
+
+    ButtonClicked.push(millis());
   }
 
   //Only change states if we are in a no-interrupt state.
   if (interruptState == STATE_INT_CLEARED)
   {
     //See if user has pressed or clicked the button
-    if ( registerMap.status & (1 << statusButtonPressedBit)
-         || registerMap.status & (1 << statusButtonClickedBit) )
+    if( bitRead(registerMap.status, statusButtonPressedBit) 
+          || bitRead(registerMap.status, statusButtonClickedBit) )    
     {
       //Check if pressed or clicked interrupt is enabled
-      if ( registerMap.interruptEnable & (1 << enableInterruptButtonPressedBit)
-           || registerMap.interruptEnable & (1 << enableInterruptButtonClickedBit))
+      if( bitRead(registerMap.interruptEnable, enableInterruptButtonPressedBit) 
+          || bitRead(registerMap.interruptEnable, enableInterruptButtonClickedBit) )
       {
-        interruptState = STATE_BUTTON_INT; //Go to next state
+        interruptState = STATE_BUTTON_INT;
       }
     }
   }

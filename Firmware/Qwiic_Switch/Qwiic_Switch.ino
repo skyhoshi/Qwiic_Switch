@@ -72,6 +72,10 @@ struct memoryMap {
   byte i2cAddress;
 };
 
+const byte statusButtonPressedBufferEmptyBit = 5;
+const byte statusButtonPressedBufferFullBit = 4;
+const byte statusButtonClickedBufferEmptyBit = 3;
+const byte statusButtonClickedBufferFullBit = 2;
 const byte statusButtonClickedBit = 1;
 const byte statusButtonPressedBit = 0;
 
@@ -101,7 +105,7 @@ volatile memoryMap registerMap = {
 //This defines which of the registers are read-only (0) vs read-write (1)
 memoryMap protectionMap = {
   .id = 0x00,
-  .status = (1 << statusButtonClickedBit) | (1 << statusButtonPressedBit),
+  .status = (1 << statusButtonClickedBit) | (1 << statusButtonPressedBit), //ask nate why these are read/write!
   .firmwareMinor = 0x00,
   .firmwareMajor = 0x00,
   .interruptEnable = (1 << enableInterruptButtonClickedBit) | (1 << enableInterruptButtonPressedBit),
@@ -123,17 +127,6 @@ volatile byte registerNumber; //Gets set when user writes an address. We then se
 
 volatile boolean updateOutputs = false; //Goes true when we receive new bytes from user. Causes LEDs and things to update in main loop.
 
-//Internal stack. The memory map is loaded with new time when user writes the timeSinceLastButton to zero.
-#define BUTTON_STACK_SIZE 15
-
-unsigned long buttonTimePressedStack[BUTTON_STACK_SIZE]; //When was the last button pressed
-byte buttonStackPressedHead = 0;
-byte buttonStackPressedTail = 0;
-
-unsigned long buttonTimeClickedStack[BUTTON_STACK_SIZE]; //When was the last button pressed
-byte buttonStackClickedHead = 0;
-byte buttonStackClickedTail = 0;
-
 //Interrupt turns on when button is pressed,
 //Turns off when interrupts are cleared by command
 enum State {
@@ -145,6 +138,110 @@ volatile byte interruptState = STATE_INT_CLEARED;
 
 volatile uint8_t interruptCount = 0; //Debug
 byte oldCount = 0;
+
+//Internal queue. The memory map is loaded with new time when user writes the timeSinceLastButton to zero.
+#define BUTTON_QUEUE_SIZE 15
+
+
+//FIFO-style circular ring buffer for storing button timestamps
+struct Queue{
+  unsigned long buffer[BUTTON_QUEUE_SIZE];
+  byte head = 0;
+  byte tail = 0;
+  bool full = false;
+
+  //Returns whether or not the Queue is full
+  bool isFull(){
+    return full;
+  }
+
+  //Returns whether or not the Queue is empty
+  bool isEmpty(){
+    if(!full && (head == tail) )
+      return true;
+  
+    return false;
+  }
+
+  //Increments the head pointer with wrap around
+  void incrementHead(){
+    head = (head + 1) % BUTTON_QUEUE_SIZE;  
+  }
+
+  //Incrments the tail pointer with wrap around
+  void incrementTail(){
+    tail = (tail + 1) % BUTTON_QUEUE_SIZE;
+  }
+
+  //Pushes a value to the top of the buffer, but 
+  //removes the oldest value if the buffer is full
+  void push(unsigned long timestamp){
+    if(isFull()){
+      incrementTail();
+    }
+    buffer[head] = timestamp;
+    incrementHead();
+
+    if(head == tail){
+      full = true;
+    }
+  }
+
+  //Returns the oldest value in the buffer
+  unsigned long back(){
+    return buffer[tail];
+  }
+
+  unsigned long front(){
+    if(!isEmpty()){
+      return buffer[(head + BUTTON_QUEUE_SIZE - 1) % BUTTON_QUEUE_SIZE];
+    }
+    return;
+  }
+
+  //Removes a value from the back of the buffer, but 
+  //also returns the value it removed
+  unsigned long pop(){
+    full = false;
+
+    if(!isEmpty()){
+      unsigned long return_val = buffer[tail];
+      incrementTail();    
+      return return_val;
+    }
+  }
+
+  void displayBuffer(){
+      Serial.println("Wake!");
+
+      Serial.print("interrupts: ");
+      Serial.println(interruptCount);
+
+      Serial.print("Queue: ");
+      Serial.print(head);
+      Serial.print("/");
+      Serial.print(tail);
+      Serial.println();
+
+      for (int x = 0 ; x < BUTTON_QUEUE_SIZE ; x++)
+      {
+        Serial.print(x);
+        if(x<10)Serial.print(" ");
+        Serial.print(":");
+        Serial.print(buffer[x]);
+        
+        if(x == head){
+          Serial.print(" (HEAD)");
+        }
+
+        if(x == tail){
+          Serial.print(" (TAIL)");
+        }
+        Serial.println();
+      }
+  }
+
+} ButtonPressed, ButtonClicked;
 
 //Used for LED pulsing
 unsigned long ledAdjustmentStartTime; //Start time of micro adjustment
@@ -197,10 +294,7 @@ void setup(void)
   //End debug values
 #endif
 
-  pulseLedAdjustments = ceil((float)registerMap.ledBrightness / registerMap.ledPulseGranularity * 2.0);
-  timePerAdjustment = round((float)registerMap.ledPulseCycleTime / pulseLedAdjustments);
-  ledBrightnessStep = registerMap.ledPulseGranularity;
-
+  calculatePulseValues();
   resetPulseValues();
 
   setupInterrupts(); //Enable pin change interrupts for I2C, switch, etc
@@ -233,9 +327,7 @@ void loop(void)
     recordSystemSettings();
 
     //Calculate LED values based on pulse settings
-    pulseLedAdjustments = ceil((float)registerMap.ledBrightness / registerMap.ledPulseGranularity * 2.0);
-    timePerAdjustment = round((float)registerMap.ledPulseCycleTime / pulseLedAdjustments);
-    ledBrightnessStep = registerMap.ledPulseGranularity;
+    calculatePulseValues();
 
     resetPulseValues();
 
@@ -248,23 +340,7 @@ void loop(void)
   {
     oldCount = interruptCount;
 #if defined(__AVR_ATmega328P__)
-    Serial.println("Wake!");
-
-    Serial.print("interrupts: ");
-    Serial.println(interruptCount);
-
-    Serial.print("PressedStack: ");
-    Serial.print(buttonStackPressedHead);
-    Serial.print("/");
-    Serial.print(buttonStackPressedTail);
-    Serial.println();
-
-    for (int x = 0 ; x < BUTTON_STACK_SIZE ; x++)
-    {
-      Serial.print(buttonTimePressedStack[x]);
-      Serial.print("\t");
-      if (x % 4 == 3) Serial.println();
-    }
+  //displayBuffer();
 #endif
   }
 
@@ -274,7 +350,11 @@ void loop(void)
   //At each discrete adjustment the LED will spend X amount of time at a brightness level
   //Time spent at this level is calc'd by taking total time (1000 ms) / number of adjustments / up/down (2) = 12ms per step
 
-  if (registerMap.ledPulseCycleTime > 0)
+  if (registerMap.ledPulseCycleTime == 0){ //Just set the LED to a static value if cycle time is zero
+    analogWrite(ledPin, registerMap.ledBrightness);
+  }
+
+  if (registerMap.ledPulseCycleTime > 0) //Otherwise run in cyclic mode
   {
     if (millis() - ledPulseStartTime <= registerMap.ledPulseCycleTime)
     {
@@ -303,10 +383,18 @@ void loop(void)
     }
     else
     {
-      //Pulse cycle and off time are expired. Reset pulse settings.
+      //Pulse cycle and off time have expired. Reset pulse settings.
       resetPulseValues();
     }
   } //LED pulse enable
+
+}
+
+//Calculate LED values based on pulse settings
+void calculatePulseValues(){
+  pulseLedAdjustments = ceil((float)registerMap.ledBrightness / registerMap.ledPulseGranularity * 2.0);
+  timePerAdjustment = round((float)registerMap.ledPulseCycleTime / pulseLedAdjustments);
+  ledBrightnessStep = registerMap.ledPulseGranularity;
 }
 
 //At the completion of a pulse cycle, reset timers
@@ -424,5 +512,4 @@ void recordSystemSettings(void)
   EEPROM.update(LOCATION_LED_PULSECYCLETIME, registerMap.ledPulseCycleTime);
   EEPROM.update(LOCATION_LED_PULSEOFFTIME, registerMap.ledPulseOffTime);
   EEPROM.update(LOCATION_BUTTON_DEBOUNCE_TIME, registerMap.buttonDebounceTime);
-
 }

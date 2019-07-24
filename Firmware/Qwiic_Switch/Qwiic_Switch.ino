@@ -1,19 +1,19 @@
 /*
   An I2C based Button
-  By: Nathan Seidle
+  By: Nathan Seidle, Fischer Moseley
   SparkFun Electronics
   Date: June 5th, 2019
   License: This code is public domain but you buy me a beer if you use this and
   we meet someday (Beerware license).
 
-  Qwiic Button is an I2C based button that records any button presses to a stack.
+  Qwiic Button is an I2C based button that records any button presses to a queue.
 
-  Qwiic Button maintains a stack of events. To remove events from the stack write
+  Qwiic Button maintains a queue of events. To remove events from the queue write
   the appropriate register (timeSinceLastButtonClicked or timeSinceLastButtonPressed)
   to zero. The register will then be filled with the next available event time.
 
   There is also an accompanying Arduino Library located here:
-  https://github.com/sparkfun/SparkFun_Qwiic_Button_Arduino_Library
+  https://github.com/sparkfun/SparkFun_Qwiic_Switch_Arduino_Library
 
   Feel like supporting our work? Buy a board from SparkFun!
   https://www.sparkfun.com/products/14641
@@ -30,6 +30,7 @@
 #include <Wire.h>
 #include <EEPROM.h>
 #include "nvm.h"
+#include "queue.h"
 
 #include "PinChangeInterrupt.h" //Nico Hood's library: https://github.com/NicoHood/PinChangeInterrupt/
 //Used for pin change interrupts on ATtinys (encoder button causes interrupt)
@@ -139,109 +140,9 @@ volatile byte interruptState = STATE_INT_CLEARED;
 volatile uint8_t interruptCount = 0; //Debug
 byte oldCount = 0;
 
-//Internal queue. The memory map is loaded with new time when user writes the timeSinceLastButton to zero.
-#define BUTTON_QUEUE_SIZE 15
-
-
-//FIFO-style circular ring buffer for storing button timestamps
-struct Queue{
-  unsigned long buffer[BUTTON_QUEUE_SIZE];
-  byte head = 0;
-  byte tail = 0;
-  bool full = false;
-
-  //Returns whether or not the Queue is full
-  bool isFull(){
-    return full;
-  }
-
-  //Returns whether or not the Queue is empty
-  bool isEmpty(){
-    if(!full && (head == tail) )
-      return true;
-  
-    return false;
-  }
-
-  //Increments the head pointer with wrap around
-  void incrementHead(){
-    head = (head + 1) % BUTTON_QUEUE_SIZE;  
-  }
-
-  //Incrments the tail pointer with wrap around
-  void incrementTail(){
-    tail = (tail + 1) % BUTTON_QUEUE_SIZE;
-  }
-
-  //Pushes a value to the top of the buffer, but 
-  //removes the oldest value if the buffer is full
-  void push(unsigned long timestamp){
-    if(isFull()){
-      incrementTail();
-    }
-    buffer[head] = timestamp;
-    incrementHead();
-
-    if(head == tail){
-      full = true;
-    }
-  }
-
-  //Returns the oldest value in the buffer
-  unsigned long back(){
-    return buffer[tail];
-  }
-
-  unsigned long front(){
-    if(!isEmpty()){
-      return buffer[(head + BUTTON_QUEUE_SIZE - 1) % BUTTON_QUEUE_SIZE];
-    }
-    return;
-  }
-
-  //Removes a value from the back of the buffer, but 
-  //also returns the value it removed
-  unsigned long pop(){
-    full = false;
-
-    if(!isEmpty()){
-      unsigned long return_val = buffer[tail];
-      incrementTail();    
-      return return_val;
-    }
-  }
-
-  void displayBuffer(){
-      Serial.println("Wake!");
-
-      Serial.print("interrupts: ");
-      Serial.println(interruptCount);
-
-      Serial.print("Queue: ");
-      Serial.print(head);
-      Serial.print("/");
-      Serial.print(tail);
-      Serial.println();
-
-      for (int x = 0 ; x < BUTTON_QUEUE_SIZE ; x++)
-      {
-        Serial.print(x);
-        if(x<10)Serial.print(" ");
-        Serial.print(":");
-        Serial.print(buffer[x]);
-        
-        if(x == head){
-          Serial.print(" (HEAD)");
-        }
-
-        if(x == tail){
-          Serial.print(" (TAIL)");
-        }
-        Serial.println();
-      }
-  }
-
-} ButtonPressed, ButtonClicked;
+//FIFO-style circular ring buffer for storing button timestamps. 
+//The memory map is loaded with new time when user writes the timeSinceLastButton to zero.
+Queue ButtonPressed, ButtonClicked;
 
 //Used for LED pulsing
 unsigned long ledAdjustmentStartTime; //Start time of micro adjustment
@@ -255,6 +156,7 @@ int16_t ledBrightnessStep; //Granularity but will become negative as we pass max
 
 void setup(void)
 {
+  //configure I/O
   pinMode(addressPin, INPUT_PULLUP);
   pinMode(ledPin, OUTPUT); //PWM
   analogWrite(ledPin, 0); //Off
@@ -387,7 +289,6 @@ void loop(void)
       resetPulseValues();
     }
   } //LED pulse enable
-
 }
 
 //Calculate LED values based on pulse settings

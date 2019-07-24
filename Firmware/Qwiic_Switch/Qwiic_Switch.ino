@@ -32,6 +32,7 @@
 #include "nvm.h"
 #include "queue.h"
 #include "registers.h"
+#include "led.h"
 
 #include "PinChangeInterrupt.h" //Nico Hood's library: https://github.com/NicoHood/PinChangeInterrupt/
 //Used for pin change interrupts on ATtinys (encoder button causes interrupt)
@@ -43,22 +44,23 @@
 //Hardware connections
 #if defined(__AVR_ATmega328P__)
 //For developement on an Uno
-const byte addressPin = 6;
-const byte ledPin = 9; //PWM
-const byte statusLedPin = 7;
-const byte switchPin = 2;
-const byte interruptPin = 7; //Pin goes low when an event occurs
+const uint8_t addressPin = 6;
+const uint8_t ledPin = 9; //PWM
+const uint8_t statusLedPin = 7;
+const uint8_t switchPin = 2;
+const uint8_t interruptPin = 7; //Pin goes low when an event occurs
 #elif defined(__AVR_ATtiny84__)
-const byte addressPin = 9;
-const byte ledPin = 7; //PWM
-const byte statusLedPin = 3;
-const byte switchPin = 8;
-const byte interruptPin = 0; //Pin goes low when an event occurs
+const uint8_t addressPin = 9;
+const uint8_t ledPin = 7; //PWM
+const uint8_t statusLedPin = 3;
+const uint8_t switchPin = 8;
+const uint8_t interruptPin = 0; //Pin goes low when an event occurs
 #endif
 
 //Global variables
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //These are the defaults for all settings
+
 //Variables used in the I2C interrupt.ino file so we use volatile
 volatile memoryMap registerMap = {
   .id = 0x5d,
@@ -97,7 +99,7 @@ memoryMap protectionMap = {
 uint8_t *registerPointer = (uint8_t *)&registerMap;
 uint8_t *protectionPointer = (uint8_t *)&protectionMap;
 
-volatile byte registerNumber; //Gets set when user writes an address. We then serve the spot the user requested.
+volatile uint8_t registerNumber; //Gets set when user writes an address. We then serve the spot the user requested.
 
 volatile boolean updateOutputs = false; //Goes true when we receive new bytes from user. Causes LEDs and things to update in main loop.
 
@@ -108,27 +110,21 @@ enum State {
   STATE_INT_CLEARED,
   STATE_INT_INDICATED,
 };
-volatile byte interruptState = STATE_INT_CLEARED;
+
+volatile uint8_t interruptState = STATE_INT_CLEARED;
 
 volatile uint8_t interruptCount = 0; //Debug
-byte oldCount = 0;
+uint8_t oldCount = 0;
 
 //FIFO-style circular ring buffer for storing button timestamps. 
 //The memory map is loaded with new time when user writes the timeSinceLastButton to zero.
 Queue ButtonPressed, ButtonClicked;
 
-//Used for LED pulsing
-unsigned long ledAdjustmentStartTime; //Start time of micro adjustment
-unsigned long ledPulseStartTime; //Start time of overall LED pulse
-uint16_t pulseLedAdjustments; //Number of adjustments to LED to make: registerMap.ledBrightness / registerMap.ledPulseGranularity * 2
-unsigned long timePerAdjustment; //ms per adjustment step of LED: registerMap.ledPulseCycleTime / pulseLedAdjustments
-int16_t pulseLedBrightness = 0; //Analog brightness of LED
-int16_t ledBrightnessStep; //Granularity but will become negative as we pass max brightness
+LEDconfig onboardLED;
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-void setup(void)
-{
+void setup(void) {
   //configure I/O
   pinMode(addressPin, INPUT_PULLUP);
   pinMode(ledPin, OUTPUT); //PWM
@@ -169,16 +165,14 @@ void setup(void)
   //End debug values
 #endif
 
-  calculatePulseValues();
-  resetPulseValues();
+  onboardLED.update(&registerMap); //update LED variables, get ready for pulsing
 
   setupInterrupts(); //Enable pin change interrupts for I2C, switch, etc
 
   startI2C(); //Determine the I2C address we should be using and begin listening on I2C bus
 }
 
-void loop(void)
-{
+void loop(void) {
   //Set interrupt pin as needed
   //Interrupt pin state machine
   //There are three states: Button Int, Int Cleared, Int Indicated
@@ -201,10 +195,8 @@ void loop(void)
     //It can take ~3.4ms to write EEPROM byte so we do that here instead of in interrupt
     recordSystemSettings();
 
-    //Calculate LED values based on pulse settings
-    calculatePulseValues();
-
-    resetPulseValues();
+    //Calculate LED values based on pulse settings if anything has changed
+    onboardLED.update(&registerMap);
 
     updateOutputs = false;
   }
@@ -214,75 +206,17 @@ void loop(void)
   if (interruptCount != oldCount)
   {
     oldCount = interruptCount;
+
 #if defined(__AVR_ATmega328P__)
   //displayBuffer();
 #endif
+
   }
-
-  //Pulse LED on/off based on settings
-  //Brightness will increase with each cycle based on granularity value (5)
-  //To get to max brightness (207) we will need ceil(207/5*2) LED adjustments = 83
-  //At each discrete adjustment the LED will spend X amount of time at a brightness level
-  //Time spent at this level is calc'd by taking total time (1000 ms) / number of adjustments / up/down (2) = 12ms per step
-
-  if (registerMap.ledPulseCycleTime == 0){ //Just set the LED to a static value if cycle time is zero
-    analogWrite(ledPin, registerMap.ledBrightness);
-  }
-
-  if (registerMap.ledPulseCycleTime > 0) //Otherwise run in cyclic mode
-  {
-    if (millis() - ledPulseStartTime <= registerMap.ledPulseCycleTime)
-    {
-      //Pulse LED
-      //Change LED brightness if enough time has passed
-      if (millis() - ledAdjustmentStartTime >= timePerAdjustment)
-      {
-        pulseLedBrightness += ledBrightnessStep;
-
-        //If we've reached a max brightness, reverse step direction
-        if (pulseLedBrightness > (registerMap.ledBrightness - registerMap.ledPulseGranularity))
-        {
-          ledBrightnessStep *= -1;
-        }
-        if (pulseLedBrightness < 0) pulseLedBrightness = 0;
-        if (pulseLedBrightness > 255) pulseLedBrightness = 255;
-
-        analogWrite(ledPin, pulseLedBrightness);
-        ledAdjustmentStartTime = millis();
-      }
-    }
-    else if (millis() - ledPulseStartTime <= registerMap.ledPulseCycleTime + registerMap.ledPulseOffTime)
-    {
-      //LED off
-      analogWrite(ledPin, 0);
-    }
-    else
-    {
-      //Pulse cycle and off time have expired. Reset pulse settings.
-      resetPulseValues();
-    }
-  } //LED pulse enable
-}
-
-//Calculate LED values based on pulse settings
-void calculatePulseValues(){
-  pulseLedAdjustments = ceil((float)registerMap.ledBrightness / registerMap.ledPulseGranularity * 2.0);
-  timePerAdjustment = round((float)registerMap.ledPulseCycleTime / pulseLedAdjustments);
-  ledBrightnessStep = registerMap.ledPulseGranularity;
-}
-
-//At the completion of a pulse cycle, reset timers
-void resetPulseValues()
-{
-  ledPulseStartTime = millis();
-  ledAdjustmentStartTime = millis();
-  ledBrightnessStep = registerMap.ledPulseGranularity; //Return positive
-  pulseLedBrightness = 0;
+  onboardLED.pulse(ledPin);
 }
 
 //Begin listening on I2C bus as I2C slave using the global variable registerMap.i2cAddress
-void startI2C()
-{
+void startI2C() {
   Wire.end(); //Before we can change addresses we need to stop
 
   if (digitalRead(addressPin) == HIGH) //Default is HIGH, the jumper is open
@@ -297,8 +231,7 @@ void startI2C()
 
 //Reads the current system settings from EEPROM
 //If anything looks weird, reset setting to default value
-void readSystemSettings(void)
-{
+void readSystemSettings(void) {
   //Read what I2C address we should use
   EEPROM.get(LOCATION_I2C_ADDRESS, registerMap.i2cAddress);
   if (registerMap.i2cAddress == 255)
@@ -368,8 +301,7 @@ void readSystemSettings(void)
 }
 
 //If the current setting is different from that in EEPROM, update EEPROM
-void recordSystemSettings(void)
-{
+void recordSystemSettings(void) {
   //Error check the current I2C address
   if (registerMap.i2cAddress < 0x08 || registerMap.i2cAddress > 0x77)
   {

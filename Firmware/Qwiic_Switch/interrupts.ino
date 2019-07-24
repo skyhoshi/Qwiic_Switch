@@ -12,9 +12,9 @@ void receiveEvent(int numberOfBytesReceived)
 
   //Begin recording the following incoming bytes to the temp memory map
   //starting at the registerNumber (the first byte received)
-  for (byte x = 0 ; x < numberOfBytesReceived - 1 ; x++)
+  for (uint8_t x = 0 ; x < numberOfBytesReceived - 1 ; x++)
   {
-    byte temp = Wire.read(); //We might record it, we might throw it away
+    uint8_t temp = Wire.read(); //We might record it, we might throw it away
 
     if ( (x + registerNumber) < sizeof(memoryMap))
     {

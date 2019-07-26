@@ -46,7 +46,7 @@ struct Queue {
     }
   }
 
-  //Returns the oldest value in the buffer
+  //Returns the oldest value in the buffer, or garbage if the buffer is empty
   unsigned long back(){
     return buffer[tail];
   }
@@ -56,7 +56,7 @@ struct Queue {
     if(!isEmpty()){
       return buffer[(head + BUTTON_QUEUE_SIZE - 1) % BUTTON_QUEUE_SIZE];
     }
-    return;
+    return 0;
   }
 
   //Removes a value from the back of the buffer, but also returns the value it removed

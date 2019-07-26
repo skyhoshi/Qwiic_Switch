@@ -70,7 +70,7 @@ const uint8_t interruptPin = 0; //Pin goes low when an event occurs
 //Variables used in the I2C interrupt.ino file so we use volatile
 volatile memoryMap registerMap {
   {0,0},        //buttonStatus {isPressed, hasBeenClicked}
-  10,           //buttonDebounceTime
+  0x000A,       //buttonDebounceTime
   {0,0,0,0},    //interruptConfig {pressedEnable, clickedEnable, logicLevel, status}
   {0,0,0},      //pressedQueueStatus {isFull, isEmpty, popRequest}
   0x00000000,   //pressedQueueFront
@@ -153,43 +153,6 @@ void setup(void) {
   Serial.println("Qwiic Button");
   Serial.print("Address: 0x");
   Serial.println(registerMap.i2cAddress, HEX);
-  Serial.print("registerMap size: ");
-  Serial.println(sizeof(registerMap));
-  Serial.print("buttonStatus: ");
-  Serial.println(sizeof(registerMap.buttonStatus));
-  Serial.print("buttonDebounceTime: ");
-  Serial.println(sizeof(registerMap.buttonDebounceTime));
-  Serial.print("interruptConfig: ");
-  Serial.println(sizeof(registerMap.interruptConfig));
-  Serial.print("pressedQueueStatus: ");
-  Serial.println(sizeof(registerMap.pressedQueueStatus));
-  Serial.print("pressedQueueFront: ");
-  Serial.println(sizeof(registerMap.pressedQueueFront));
-  Serial.print("pressedQueueBack: ");
-  Serial.println(sizeof(registerMap.pressedQueueBack));
-  Serial.print("clickedQueueStatus: ");
-  Serial.println(sizeof(registerMap.clickedQueueStatus));
-  Serial.print("clickedQueueFront: ");
-  Serial.println(sizeof(registerMap.clickedQueueFront));
-  Serial.print("clickedQueueBack: ");
-  Serial.println(sizeof(registerMap.clickedQueueBack));
-  Serial.print("ledBrightness: ");
-  Serial.println(sizeof(registerMap.ledBrightness));
-  Serial.print("ledPulseGranularity: ");
-  Serial.println(sizeof(registerMap.ledPulseGranularity));
-  Serial.print("ledPulseCycleTime: ");
-  Serial.println(sizeof(registerMap.ledPulseCycleTime));
-  Serial.print("ledPulseOffTime: ");
-  Serial.println(sizeof(registerMap.ledPulseOffTime));
-  Serial.print("i2cAddress: ");
-  Serial.println(sizeof(registerMap.i2cAddress));
-  Serial.print("id: ");
-  Serial.println(sizeof(registerMap.id));
-  Serial.print("firmwareMinor: ");
-  Serial.println(sizeof(registerMap.firmwareMinor));
-  Serial.print("firmwareMajor: ");
-  Serial.println(sizeof(registerMap.firmwareMajor));
-  Serial.println();
 #endif
 
   //Disable ADC

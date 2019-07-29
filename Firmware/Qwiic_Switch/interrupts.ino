@@ -51,18 +51,6 @@ void receiveEvent(int numberOfBytesReceived){
     registerMap.clickedQueueStatus.popRequest = false;
   }
 
-  //Update interrupt flag
-  if (interruptState == STATE_INT_INDICATED){
-    //If the user has cleared all the interrupt bits then clear interrupt pin
-    //ask nate: is this the right register? should it be the interruptEnable register
-    if (!registerMap.buttonStatus.isPressed && !registerMap.buttonStatus.hasBeenClicked){
-      //This will set the int pin to high impedance (aka pulled high by external resistor)
-      digitalWrite(interruptPin, LOW); //Push pin to disable internal pull-ups
-      pinMode(interruptPin, INPUT); //Go to high impedance
-
-      interruptState = STATE_INT_CLEARED; //Go to next state
-    }
-  }
   updateOutputs = true; //Update things like LED brightnesses in the main loop
 }
 
@@ -105,6 +93,9 @@ void buttonInterrupt(){
   registerMap.pressedQueueStatus.isEmpty = ButtonPressed.isEmpty();
   registerMap.pressedQueueStatus.isFull = ButtonPressed.isFull();
 
+  //Set the interrupt bit if it's configured to trigger on a button press
+  if(registerMap.interruptConfig.pressedEnable && registerMap.buttonStatus.isPressed) registerMap.interruptConfig.status = true;
+
   //Update the ButtonClicked queue and registerMap if necessary
   if (digitalRead(switchPin) == HIGH){ //User has released the button, we have completed a click cycle
     //update the ButtonClicked queue and then registerMap
@@ -112,16 +103,8 @@ void buttonInterrupt(){
     ButtonClicked.push(millis());
     registerMap.clickedQueueStatus.isEmpty = ButtonClicked.isEmpty();
     registerMap.clickedQueueStatus.isFull = ButtonClicked.isFull();
-  }
 
-  //Update interrupt flag!
-  if(interruptState == STATE_INT_CLEARED){ //Only change states if we are in a no-interrupt state.
-    //set the interrupt flag if the pressed interrupt is enabled and the button is pressed
-    if(registerMap.interruptConfig.pressedEnable || registerMap.buttonStatus.isPressed)
-      interruptState = STATE_BUTTON_INT;
-
-    //set the interrupt flag if the clicked interrupt is enabled and the button has been clicked
-    if(registerMap.interruptConfig.clickedEnable || registerMap.buttonStatus.hasBeenClicked)
-      interruptState = STATE_BUTTON_INT;
+    //Set the interrupt bit if it's configured to trigger on a button click
+    if(registerMap.interruptConfig.clickedEnable) registerMap.interruptConfig.status = true;
   }
 }

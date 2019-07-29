@@ -71,7 +71,7 @@ const uint8_t interruptPin = 0; //Pin goes low when an event occurs
 volatile memoryMap registerMap {
   {0,0},        //buttonStatus {isPressed, hasBeenClicked}
   0x000A,       //buttonDebounceTime
-  {0,0,0,0},    //interruptConfig {pressedEnable, clickedEnable, logicLevel, status}
+  {0,0,0},    //interruptConfig {pressedEnable, clickedEnable, status}
   {0,0,0},      //pressedQueueStatus {isFull, isEmpty, popRequest}
   0x00000000,   //pressedQueueFront
   0x00000000,   //pressedQueueBack
@@ -93,7 +93,7 @@ volatile memoryMap registerMap {
 memoryMap protectionMap = {
   {0,1},        //buttonStatus {isPressed, hasBeenClicked}
   0xFFFF,       //buttonDebounceTime
-  {1,1,1,1},    //interruptConfig {pressedEnable, clickedEnable, logicLevel, status}
+  {1,1,1},    //interruptConfig {pressedEnable, clickedEnable, status}
   {0,0,1},      //pressedQueueStatus {isFull, isEmpty, popRequest}
   0x00000000,   //pressedQueueFront
   0x00000000,   //pressedQueueBack
@@ -117,16 +117,6 @@ uint8_t *protectionPointer = (uint8_t *)&protectionMap;
 volatile uint8_t registerNumber; //Gets set when user writes an address. We then serve the spot the user requested.
 
 volatile boolean updateOutputs = false; //Goes true when we receive new bytes from user. Causes LEDs and things to update in main loop.
-
-//Interrupt turns on when button is pressed,
-//Turns off when interrupts are cleared by command
-enum State {
-  STATE_BUTTON_INT = 0,
-  STATE_INT_CLEARED,
-  STATE_INT_INDICATED,
-};
-
-volatile uint8_t interruptState = STATE_INT_CLEARED;
 
 volatile uint8_t interruptCount = 0; //Debug
 uint8_t oldCount = 0;
@@ -167,7 +157,7 @@ void setup(void) {
   set_sleep_mode(SLEEP_MODE_IDLE);
   sleep_enable();
 
-  readSystemSettings(); //Load all system settings from EEPROM
+  //readSystemSettings(); //Load all system settings from EEPROM
 
 #if defined(__AVR_ATmega328P__)
   //Debug values
@@ -180,28 +170,11 @@ void setup(void) {
 #endif
 
   onboardLED.update(&registerMap); //update LED variables, get ready for pulsing
-
   setupInterrupts(); //Enable pin change interrupts for I2C, switch, etc
-
   startI2C(); //Determine the I2C address we should be using and begin listening on I2C bus
 }
 
 void loop(void) {
-  //Set interrupt pin as needed
-  //Interrupt pin state machine
-  //There are three states: Button Int, Int Cleared, Int Indicated
-  //BUTTON_INT state is set if user presses button
-  //INT_CLEARED state is set in the I2C interrupt when Clear Ints command is received.
-  //INT_INDICATED state is set once we change the INT pin to go low
-
-  //If we are in button interrupt state, then set INT low
-  if (interruptState == STATE_BUTTON_INT){
-    //Set the interrupt pin low to indicate interrupt
-    pinMode(interruptPin, OUTPUT);
-    digitalWrite(interruptPin, LOW);
-    interruptState = STATE_INT_INDICATED;
-  }
-
   if (updateOutputs == true){
     //Record anything new to EEPROM like new LED values
     //It can take ~3.4ms to write EEPROM byte so we do that here instead of in interrupt
@@ -209,6 +182,16 @@ void loop(void) {
 
     //Calculate LED values based on pulse settings if anything has changed
     onboardLED.update(&registerMap);
+
+    //update interruptPin output
+    if(registerMap.interruptConfig.status) {
+      pinMode(interruptPin, OUTPUT);
+      digitalWrite(interruptPin, LOW);
+    }
+
+    if(!registerMap.interruptConfig.status) {
+      pinMode(interruptPin, INPUT);
+    }
 
     updateOutputs = false;
   }

@@ -72,10 +72,10 @@ volatile memoryMap registerMap {
   {0,0},        //buttonStatus {isPressed, hasBeenClicked}
   0x000A,       //buttonDebounceTime
   {0,0,0},    //interruptConfig {pressedEnable, clickedEnable, status}
-  {0,0,0},      //pressedQueueStatus {isFull, isEmpty, popRequest}
+  {0,1,0},      //pressedQueueStatus {isFull, isEmpty, popRequest}
   0x00000000,   //pressedQueueFront
   0x00000000,   //pressedQueueBack
-  {0,0,0},      //clickedQueueStatus {isFull, isEmpty, popRequest}
+  {0,1,0},      //clickedQueueStatus {isFull, isEmpty, popRequest}
   0x00000000,   //clickedQueueFront
   0x00000000,   //clickedQueueBack
   0x00,         //ledBrightness

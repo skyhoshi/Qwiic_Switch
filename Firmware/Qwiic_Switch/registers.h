@@ -1,12 +1,28 @@
-/* This file defines the pseudo register map of the Qwiic Switch/Button, and which bits
-contain what information in the register bytes. */
+/******************************************************************************
+registers.h
+Fischer Moseley @ SparkFun Electronics
+Original Creation Date: July 31, 2019
 
-//This is the pseudo register map of the product. If user asks for 0x02 then get the 3rd
-//uint8_t inside the register map.
+This file defines the memoryMap struct, which acts as the pseudo register map
+of the Qwiic Button/Switch. It also serves as an easy way to access variables
+and manipulate the state of the device.
+
+During I2C transactions, the memoryMap object is wrapped as a collection of
+bytes. The byte that the user is interested in (either to read or write) is
+selected with a register pointer. For instance, if the user sets the pointer
+to 0x0e, they will be addressing the 4th uint8_t sized object in this struct.
+In this case, that would be the interruptConfig register!
+
+This code is beerware; if you see me (or any other SparkFun employee) at the
+local, and you've found our code helpful, please buy us a round!
+
+Distributed as-is; no warranty is given.
+******************************************************************************/
 
 typedef union {
   struct {
-    bool : 6;
+    bool : 5;
+    bool isReady : 1; //not mutable by user, set to 0 if the device isn't ready for I2C traffic yet, and set to 1 if the device has finished setup
     bool isPressed : 1;  //not mutable by user, set to zero if button is not pushed, set to one if button is pushed
     bool hasBeenClicked : 1; //mutable by user, basically behaves like an interrupt. Defaults to zero on POR, but gets set to one every time the button gets clicked. Can be cleared by the user, and that happens regularly in the accompnaying arduino library
   };
@@ -39,7 +55,7 @@ typedef struct memoryMap {
   uint16_t buttonDebounceTime;                            // 0x01
 
   //Interrupt Configuration
-  interruptConfigBitField interruptConfig;               // 0x03
+  interruptConfigBitField interruptConfig;                // 0x03
   
   //ButtonPressed queue manipulation and status functions
   queueStatusBitField pressedQueueStatus;                 // 0x04      

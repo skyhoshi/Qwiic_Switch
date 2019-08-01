@@ -60,8 +60,8 @@
 
 #define SWITCH_DEVICE_ID 0x5E
 #define BUTTON_DEVICE_ID 0x5D
-#define FIRMWARE_MAJOR 0x00 //Firmware Version. Helpful for tech support.
-#define FIRMWARE_MINOR 0x01
+#define FIRMWARE_MAJOR 0x01 //Firmware Version. Helpful for tech support.
+#define FIRMWARE_MINOR 0x00
 
 #if defined __SWITCH__
 #define DEVICE_ID SWITCH_DEVICE_ID

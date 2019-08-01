@@ -8,7 +8,3 @@ enum eepromLocations {
   LOCATION_LED_PULSEOFFTIME,
   LOCATION_BUTTON_DEBOUNCE_TIME,
 };
-
-//Defaults for the I2C address
-const byte I2C_ADDRESS_DEFAULT = 0x5F;
-const byte I2C_FORCED_ADDRESS = 0x5E; //This is the address we go to incase user closes the address jumper

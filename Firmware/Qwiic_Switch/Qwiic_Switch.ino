@@ -43,20 +43,40 @@
 
 //Software Self-Identification configuration
 //Please update these appropriately before uploading!
-#define DEVICE_ID 0x5D //set to 0x5D for Qwiic Button, 0x5E for Qwiic Switch
+
+#define __BUTTON__ //the device that we're flashing. Make sure this is correct before programming a bunch of buttons/switches
 #define FIRMWARE_MAJOR 0x00 //Firmware Version. Helpful for tech support.
 #define FIRMWARE_MINOR 0x01
+
+#if defined (__BUTTON__)
+#define DEVICE_ID 0x5D
+#define DEFAULT_I2C_ADDRESS 0x60
+#define FORCED_I2C_ADDRESS 0x60 //doesn't matter, we'll never use this
+#endif
+
+#if defined (__SWITCH__)
+#define DEVICE_ID 0x5E
+#define DEFAULT_I2C_ADDRESS 0x46
+#define FORCED_I2C_ADDRESS 0x47
+#endif
 
 //Hardware connections
 #if defined(__AVR_ATmega328P__)
 //For developement on an Uno
-const uint8_t addressPin = 6;
+const uint8_t addressPin0 = 3;
+const uint8_t addressPin1 = 4;
+const uint8_t addressPin2 = 5;
+const uint8_t addressPin3 = 6;
 const uint8_t ledPin = 9; //PWM
 const uint8_t statusLedPin = 7;
 const uint8_t switchPin = 2;
 const uint8_t interruptPin = 7; //Pin goes low when an event occurs
+
 #elif defined(__AVR_ATtiny84__)
-const uint8_t addressPin = 9;
+const uint8_t addressPin0 = 9;
+const uint8_t addressPin1 = 10;
+const uint8_t addressPin2 = 1;
+const uint8_t addressPin3 = 2;
 const uint8_t ledPin = 7; //PWM
 const uint8_t statusLedPin = 3;
 const uint8_t switchPin = 8;
@@ -69,9 +89,9 @@ const uint8_t interruptPin = 0; //Pin goes low when an event occurs
 
 //Variables used in the I2C interrupt.ino file so we use volatile
 volatile memoryMap registerMap {
-  {0,0},        //buttonStatus {isPressed, hasBeenClicked}
+  {0,0,0},      //buttonStatus {isReady, isPressed, hasBeenClicked}
   0x000A,       //buttonDebounceTime
-  {0,0,0},    //interruptConfig {pressedEnable, clickedEnable, status}
+  {0,0,0},      //interruptConfig {pressedEnable, clickedEnable, status}
   {0,1,0},      //pressedQueueStatus {isFull, isEmpty, popRequest}
   0x00000000,   //pressedQueueFront
   0x00000000,   //pressedQueueBack
@@ -82,18 +102,18 @@ volatile memoryMap registerMap {
   0x01,         //ledPulseGranularity
   0x0000,       //ledPulseCycleTime
   0x0000,       //ledPulseOffTime
-  I2C_ADDRESS_DEFAULT, //i2cAddress
-  DEVICE_ID,        //id
-  FIRMWARE_MINOR,   //firmwareMinor
-  FIRMWARE_MAJOR,   //firmwareMajor
+  DEFAULT_I2C_ADDRESS,  //i2cAddress
+  DEVICE_ID,            //id
+  FIRMWARE_MINOR,       //firmwareMinor
+  FIRMWARE_MAJOR,       //firmwareMajor
 };
 
 
 //This defines which of the registers are read-only (0) vs read-write (1)
 memoryMap protectionMap = {
-  {0,1},        //buttonStatus {isPressed, hasBeenClicked}
+  {0,0,1},      //buttonStatus {isReady, isPressed, hasBeenClicked}
   0xFFFF,       //buttonDebounceTime
-  {1,1,1},    //interruptConfig {pressedEnable, clickedEnable, status}
+  {1,1,1},      //interruptConfig {pressedEnable, clickedEnable, status}
   {0,0,1},      //pressedQueueStatus {isFull, isEmpty, popRequest}
   0x00000000,   //pressedQueueFront
   0x00000000,   //pressedQueueBack
@@ -131,7 +151,7 @@ LEDconfig onboardLED;
 
 void setup(void) {
   //configure I/O
-  pinMode(addressPin, INPUT_PULLUP);
+  pinMode(addressPin0, INPUT_PULLUP);
   pinMode(ledPin, OUTPUT); //PWM
   analogWrite(ledPin, 0); //Off
   pinMode(statusLedPin, OUTPUT); //No PWM
@@ -213,10 +233,10 @@ void loop(void) {
 void startI2C(){
   Wire.end(); //Before we can change addresses we need to stop
 
-  if (digitalRead(addressPin) == HIGH) //Default is HIGH, the jumper is open
+  if (digitalRead(addressPin0) == HIGH) //Default is HIGH, the jumper is open
     Wire.begin(registerMap.i2cAddress); //Start I2C and answer calls using address from EEPROM
   else
-    Wire.begin(I2C_FORCED_ADDRESS); //Force address to I2C_ADDRESS_JUMPER if user has closed the solder jumper
+    Wire.begin(FORCED_I2C_ADDRESS); //Force address to I2C_ADDRESS_JUMPER if user has closed the solder jumper
 
   //The connections to the interrupts are severed when a Wire.begin occurs. So re-declare them.
   Wire.onReceive(receiveEvent);
@@ -229,7 +249,7 @@ void readSystemSettings(memoryMap* map){
   //Read what I2C address we should use
   EEPROM.get(LOCATION_I2C_ADDRESS, map->i2cAddress);
   if (map->i2cAddress == 255){
-    map->i2cAddress = I2C_ADDRESS_DEFAULT; //By default, we listen for I2C_ADDRESS_DEFAULT
+    map->i2cAddress = DEFAULT_I2C_ADDRESS; //By default, we listen for DEFAULT_I2C_ADDRESS
     EEPROM.update(LOCATION_I2C_ADDRESS, map->i2cAddress);
   }
 
@@ -237,7 +257,7 @@ void readSystemSettings(memoryMap* map){
   if (map->i2cAddress < 0x08 || map->i2cAddress > 0x77){
     //User has set the address out of range
     //Go back to defaults
-    map->i2cAddress = I2C_ADDRESS_DEFAULT;
+    map->i2cAddress = DEFAULT_I2C_ADDRESS;
     EEPROM.update(LOCATION_I2C_ADDRESS, map->i2cAddress);
   }
 
@@ -290,7 +310,7 @@ void recordSystemSettings(memoryMap* map) {
   if (map->i2cAddress < 0x08 || map->i2cAddress > 0x77){
     //User has set the address out of range
     //Go back to defaults
-    map->i2cAddress = I2C_ADDRESS_DEFAULT;
+    map->i2cAddress = DEFAULT_I2C_ADDRESS;
     startI2C(); //Determine the I2C address we should be using and begin listening on I2C bus
   }
 

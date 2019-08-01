@@ -6,7 +6,8 @@ contain what information in the register bytes. */
 
 typedef union {
   struct {
-    bool : 6;
+    bool : 5;
+    bool isReady : 1; //not mutable by user, set to 0 if the device isn't ready for I2C traffic yet, and set to 1 if the device has finished I2C init
     bool isPressed : 1;  //not mutable by user, set to zero if button is not pushed, set to one if button is pushed
     bool hasBeenClicked : 1; //mutable by user, basically behaves like an interrupt. Defaults to zero on POR, but gets set to one every time the button gets clicked. Can be cleared by the user, and that happens regularly in the accompnaying arduino library
   };

@@ -1,17 +1,3 @@
-/******************************************************************************
-nvm.h
-Fischer Moseley @ SparkFun Electronics
-Original Creation Date: July 31, 2019
-
-This file defines the locations in EEPROM where the configuration data is to
-be stored.
-
-This code is beerware; if you see me (or any other SparkFun employee) at the
-local, and you've found our code helpful, please buy us a round!
-
-Distributed as-is; no warranty is given.
-******************************************************************************/
-
 //Location in EEPROM for each thing we want to store between power cycles
 enum eepromLocations {
   LOCATION_I2C_ADDRESS, //Device's address
@@ -22,3 +8,7 @@ enum eepromLocations {
   LOCATION_LED_PULSEOFFTIME,
   LOCATION_BUTTON_DEBOUNCE_TIME,
 };
+
+//Defaults for the I2C address
+const byte I2C_ADDRESS_DEFAULT = 0x5F;
+const byte I2C_FORCED_ADDRESS = 0x5E; //This is the address we go to incase user closes the address jumper

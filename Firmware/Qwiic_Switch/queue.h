@@ -1,23 +1,4 @@
-/******************************************************************************
-registers.h
-Fischer Moseley @ SparkFun Electronics
-Original Creation Date: July 31, 2019
-
-This file defines the Queue struct, which serves as an easy way to implement a
-FIFO-style circular ring buffer. It contains a few functions for determining
-the state of the queue, and will allow the user to push/pop items from the
-queue, and also get the items at the front and back of the queue.
-
-It's worth noting that the fundamental datatype here is a 32-bit unsigned long,
-so if you're looking to store signed numbers you may want to adjust that.
-Other than swapping "unsigned long" for "signed int" the code would require
-no further modification.
-
-This code is beerware; if you see me (or any other SparkFun employee) at the
-local, and you've found our code helpful, please buy us a round!
-
-Distributed as-is; no warranty is given.
-******************************************************************************/
+//FIFO-style circular ring buffer for storing button timestamps
 
 #define BUTTON_QUEUE_SIZE 15 //How many button events to store in memory.
 

@@ -1,27 +1,12 @@
-/******************************************************************************
-interrupts.ino
-Fischer Moseley @ SparkFun Electronics
-Original Creation Date: July 31, 2019
-
-This file contains the interrupt routines that are triggered upon an I2C write from 
-master (receiveEvent), an I2C read (requestEvent), or a button state change 
-(buttonInterrupt). These ISRs modify the registerMap state variable, and sometimes
-set a flag (updateFlag) that updates things in the main loop.
-
-This code is beerware; if you see me (or any other SparkFun employee) at the
-local, and you've found our code helpful, please buy us a round!
-
-Distributed as-is; no warranty is given.
-******************************************************************************/
-
 //Turn on interrupts for the various pins
-void setupInterrupts() {
+void setupInterrupts()
+{
   //Attach interrupt to switch
   attachPCINT(digitalPinToPCINT(switchPin), buttonInterrupt, CHANGE);
 }
 
 //When Qwiic Button receives data bytes from Master, this function is called as an interrupt
-void receiveEvent(int numberOfBytesReceived) {
+void receiveEvent(int numberOfBytesReceived){
   registerNumber = Wire.read(); //Get the memory map offset from the user
 
   //Begin recording the following incoming bytes to the temp memory map
@@ -39,7 +24,7 @@ void receiveEvent(int numberOfBytesReceived) {
 
   //Update the ButtonPressed and ButtonClicked queues.
   //If the user has requested to pop the oldest event off the stack then do so!
-  if (registerMap.pressedQueueStatus.popRequest) {
+  if (registerMap.pressedQueueStatus.popRequest){
     //Update the register with the next-oldest timestamp
     ButtonPressed.pop();
     registerMap.pressedQueueBack = ButtonPressed.back();
@@ -53,7 +38,7 @@ void receiveEvent(int numberOfBytesReceived) {
   }
 
   //If the user has requested to pop the oldest event off the stack then do so!
-  if (registerMap.clickedQueueStatus.popRequest) {
+  if (registerMap.clickedQueueStatus.popRequest){
     //Update the register with the next-oldest timestamp
     ButtonClicked.pop();
     registerMap.clickedQueueBack = ButtonClicked.back();
@@ -66,14 +51,14 @@ void receiveEvent(int numberOfBytesReceived) {
     registerMap.clickedQueueStatus.popRequest = false;
   }
 
-  updateFlag = true; //Update things like LED brightnesses in the main loop
+  updateOutputs = true; //Update things like LED brightnesses in the main loop
 }
 
 //Respond to GET commands
 //When Qwiic Button gets a request for data from the user, this function is called as an interrupt
 //The interrupt will respond with bytes starting from the last byte the user sent to us
 //While we are sending bytes we may have to do some calculations
-void requestEvent() {
+void requestEvent(){
   registerMap.buttonStatus.isPressed = !digitalRead(switchPin); //have to take the inverse of the switch pin because the switch is pulled up, not pulled down
 
   //Calculate time stamps before we start sending bytes via I2C
@@ -91,14 +76,16 @@ void requestEvent() {
 }
 
 //Called any time the pin changes state
-void buttonInterrupt() {
+void buttonInterrupt(){
 
   //Debounce by comparing with last value in the queue. If there is no last value, then this is the first and we should record it.
-  if(!ButtonPressed.isEmpty()) {
+  if(!ButtonPressed.isEmpty()){
     if ( millis() < (registerMap.buttonDebounceTime + ButtonPressed.front()) ){
       return;
     }
   }
+ 
+  interruptCount++; //For debug
 
   //Update the ButtonPressed queue and registerMap
   registerMap.buttonStatus.isPressed = !digitalRead(switchPin); //have to take the inverse of the switch pin because the switch is pulled up, not pulled down
@@ -110,7 +97,7 @@ void buttonInterrupt() {
   if(registerMap.interruptConfig.pressedEnable && registerMap.buttonStatus.isPressed) registerMap.interruptConfig.status = true;
 
   //Update the ButtonClicked queue and registerMap if necessary
-  if (digitalRead(switchPin) == HIGH) { //User has released the button, we have completed a click cycle
+  if (digitalRead(switchPin) == HIGH){ //User has released the button, we have completed a click cycle
     //update the ButtonClicked queue and then registerMap
     registerMap.buttonStatus.hasBeenClicked = true;
     ButtonClicked.push(millis());

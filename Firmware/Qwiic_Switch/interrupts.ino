@@ -93,18 +93,11 @@ void requestEvent() {
 //Called any time the pin changes state
 void buttonInterrupt() {
 
-  /*
-  //Debounce by comparing with last value in the queue. If there is no last value, then this is the first and we should record it.
-  if(!ButtonPressed.isEmpty()) {
-    if ( millis() < (registerMap.buttonDebounceTime + ButtonPressed.front()) ){
-      return;
-    }
-  }
-  */
+  delay(registerMap.buttonDebounceTime);
 
   //Update the ButtonPressed queue and registerMap
   registerMap.buttonStatus.isPressed = !digitalRead(switchPin); //have to take the inverse of the switch pin because the switch is pulled up, not pulled down
-  ButtonPressed.push(millis());
+  ButtonPressed.push(millis() - registerMap.buttonDebounceTime);
   registerMap.pressedQueueStatus.isEmpty = ButtonPressed.isEmpty();
   registerMap.pressedQueueStatus.isFull = ButtonPressed.isFull();
 
@@ -115,7 +108,7 @@ void buttonInterrupt() {
   if (digitalRead(switchPin) == HIGH) { //User has released the button, we have completed a click cycle
     //update the ButtonClicked queue and then registerMap
     registerMap.buttonStatus.hasBeenClicked = true;
-    ButtonClicked.push(millis());
+    ButtonClicked.push(millis() - registerMap.buttonDebounceTime);
     registerMap.clickedQueueStatus.isEmpty = ButtonClicked.isEmpty();
     registerMap.clickedQueueStatus.isFull = ButtonClicked.isFull();
 

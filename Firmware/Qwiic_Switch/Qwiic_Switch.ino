@@ -56,7 +56,7 @@
 
 //Software Self-Identification configuration
 //Please update these appropriately before uploading!
-#define __BUTTON__ //The device that this code will run on. Set to __BUTTON__ for the Qwiic Button, and __SWITCH__ for the Qwiic Switch.
+#define __SWITCH__ //The device that this code will run on. Set to __BUTTON__ for the Qwiic Button, and __SWITCH__ for the Qwiic Switch.
 
 #define SWITCH_DEVICE_ID 0x5E
 #define BUTTON_DEVICE_ID 0x5D

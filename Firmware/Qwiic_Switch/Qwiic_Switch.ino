@@ -157,7 +157,7 @@ void setup(void) {
   set_sleep_mode(SLEEP_MODE_IDLE);
   sleep_enable();
 
-  //readSystemSettings(); //Load all system settings from EEPROM
+  readSystemSettings(&registerMap); //Load all system settings from EEPROM
 
 #if defined(__AVR_ATmega328P__)
   //Debug values
@@ -178,7 +178,7 @@ void loop(void) {
   if (updateOutputs == true){
     //Record anything new to EEPROM like new LED values
     //It can take ~3.4ms to write EEPROM byte so we do that here instead of in interrupt
-    recordSystemSettings();
+    recordSystemSettings(&registerMap);
 
     //Calculate LED values based on pulse settings if anything has changed
     onboardLED.update(&registerMap);
@@ -225,80 +225,80 @@ void startI2C(){
 
 //Reads the current system settings from EEPROM
 //If anything looks weird, reset setting to default value
-void readSystemSettings(void){
+void readSystemSettings(memoryMap* map){
   //Read what I2C address we should use
-  EEPROM.get(LOCATION_I2C_ADDRESS, registerMap.i2cAddress);
-  if (registerMap.i2cAddress == 255){
-    registerMap.i2cAddress = I2C_ADDRESS_DEFAULT; //By default, we listen for I2C_ADDRESS_DEFAULT
-    EEPROM.update(LOCATION_I2C_ADDRESS, registerMap.i2cAddress);
+  EEPROM.get(LOCATION_I2C_ADDRESS, map->i2cAddress);
+  if (map->i2cAddress == 255){
+    map->i2cAddress = I2C_ADDRESS_DEFAULT; //By default, we listen for I2C_ADDRESS_DEFAULT
+    EEPROM.update(LOCATION_I2C_ADDRESS, map->i2cAddress);
   }
 
   //Error check I2C address we read from EEPROM
-  if (registerMap.i2cAddress < 0x08 || registerMap.i2cAddress > 0x77){
+  if (map->i2cAddress < 0x08 || map->i2cAddress > 0x77){
     //User has set the address out of range
     //Go back to defaults
-    registerMap.i2cAddress = I2C_ADDRESS_DEFAULT;
-    EEPROM.update(LOCATION_I2C_ADDRESS, registerMap.i2cAddress);
+    map->i2cAddress = I2C_ADDRESS_DEFAULT;
+    EEPROM.update(LOCATION_I2C_ADDRESS, map->i2cAddress);
   }
 
   //Read the interrupt bits
-  EEPROM.get(LOCATION_INTERRUPTS, registerMap.interruptConfig.byteWrapped);
-  if (registerMap.interruptConfig.byteWrapped == 0xFF){ //Blank
-    registerMap.interruptConfig.byteWrapped = 0x03; //By default, enable the click and pressed interrupts
-    EEPROM.update(LOCATION_INTERRUPTS, registerMap.interruptConfig.byteWrapped);
+  EEPROM.get(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
+  if (map->interruptConfig.byteWrapped == 0xFF){ //Blank
+    map->interruptConfig.byteWrapped = 0x03; //By default, enable the click and pressed interrupts
+    EEPROM.update(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
   }
 
-  EEPROM.get(LOCATION_LED_PULSEGRANULARITY, registerMap.ledPulseGranularity);
-  if (registerMap.ledPulseGranularity == 0xFF){
-    registerMap.ledPulseGranularity = 0; //Default to none
-    EEPROM.update(LOCATION_LED_PULSEGRANULARITY, registerMap.ledPulseGranularity);
+  EEPROM.get(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
+  if (map->ledPulseGranularity == 0xFF){
+    map->ledPulseGranularity = 0; //Default to none
+    EEPROM.update(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
   }
 
-  EEPROM.get(LOCATION_LED_PULSECYCLETIME, registerMap.ledPulseCycleTime);
-  if (registerMap.ledPulseCycleTime == 0xFFFF){
-    registerMap.ledPulseCycleTime = 0; //Default to none
-    EEPROM.update(LOCATION_LED_PULSECYCLETIME, registerMap.ledPulseCycleTime);
+  EEPROM.get(LOCATION_LED_PULSECYCLETIME, map->ledPulseCycleTime);
+  if (map->ledPulseCycleTime == 0xFFFF){
+    map->ledPulseCycleTime = 0; //Default to none
+    EEPROM.update(LOCATION_LED_PULSECYCLETIME, map->ledPulseCycleTime);
   }
 
-  EEPROM.get(LOCATION_LED_PULSEOFFTIME, registerMap.ledPulseOffTime);
-  if (registerMap.ledPulseOffTime == 0xFFFF){
-    registerMap.ledPulseOffTime = 0; //Default to none
-    EEPROM.update(LOCATION_LED_PULSECYCLETIME, registerMap.ledPulseOffTime);
+  EEPROM.get(LOCATION_LED_PULSEOFFTIME, map->ledPulseOffTime);
+  if (map->ledPulseOffTime == 0xFFFF){
+    map->ledPulseOffTime = 0; //Default to none
+    EEPROM.update(LOCATION_LED_PULSECYCLETIME, map->ledPulseOffTime);
   }
 
-  EEPROM.get(LOCATION_BUTTON_DEBOUNCE_TIME, registerMap.buttonDebounceTime);
-  if (registerMap.buttonDebounceTime == 0xFFFF){
-    registerMap.buttonDebounceTime = 10; //Default to 10ms
-    EEPROM.update(LOCATION_BUTTON_DEBOUNCE_TIME, registerMap.buttonDebounceTime);
+  EEPROM.get(LOCATION_BUTTON_DEBOUNCE_TIME, map->buttonDebounceTime);
+  if (map->buttonDebounceTime == 0xFFFF){
+    map->buttonDebounceTime = 10; //Default to 10ms
+    EEPROM.update(LOCATION_BUTTON_DEBOUNCE_TIME, map->buttonDebounceTime);
   }
 
   //Read the starting value for the LED
-  EEPROM.get(LOCATION_LED_BRIGHTNESS, registerMap.ledBrightness);
-  if (registerMap.ledPulseCycleTime > 0){
+  EEPROM.get(LOCATION_LED_BRIGHTNESS, map->ledBrightness);
+  if (map->ledPulseCycleTime > 0){
     //Don't turn on LED, we'll pulse it in main loop
     analogWrite(ledPin, 0);
   }
   else { //Pulsing disabled
     //Turn on LED to setting
-    analogWrite(ledPin, registerMap.ledBrightness);
+    analogWrite(ledPin, map->ledBrightness);
   }
 }
 
 //If the current setting is different from that in EEPROM, update EEPROM
-void recordSystemSettings(void) {
+void recordSystemSettings(memoryMap* map) {
   //Error check the current I2C address
-  if (registerMap.i2cAddress < 0x08 || registerMap.i2cAddress > 0x77){
+  if (map->i2cAddress < 0x08 || map->i2cAddress > 0x77){
     //User has set the address out of range
     //Go back to defaults
-    registerMap.i2cAddress = I2C_ADDRESS_DEFAULT;
+    map->i2cAddress = I2C_ADDRESS_DEFAULT;
     startI2C(); //Determine the I2C address we should be using and begin listening on I2C bus
   }
 
-  EEPROM.update(LOCATION_I2C_ADDRESS, registerMap.i2cAddress);
-  EEPROM.update(LOCATION_INTERRUPTS, registerMap.interruptConfig.byteWrapped);
-  EEPROM.update(LOCATION_LED_BRIGHTNESS, registerMap.ledBrightness);
-  EEPROM.update(LOCATION_LED_PULSEGRANULARITY, registerMap.ledPulseGranularity);
-  EEPROM.update(LOCATION_LED_PULSECYCLETIME, registerMap.ledPulseCycleTime);
-  EEPROM.update(LOCATION_LED_PULSEOFFTIME, registerMap.ledPulseOffTime);
-  EEPROM.update(LOCATION_BUTTON_DEBOUNCE_TIME, registerMap.buttonDebounceTime);
+  EEPROM.update(LOCATION_I2C_ADDRESS, map->i2cAddress);
+  EEPROM.update(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
+  EEPROM.update(LOCATION_LED_BRIGHTNESS, map->ledBrightness);
+  EEPROM.update(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
+  EEPROM.update(LOCATION_LED_PULSECYCLETIME, map->ledPulseCycleTime);
+  EEPROM.update(LOCATION_LED_PULSEOFFTIME, map->ledPulseOffTime);
+  EEPROM.update(LOCATION_BUTTON_DEBOUNCE_TIME, map->buttonDebounceTime);
 }

@@ -20,7 +20,7 @@ Repository Contents
 
 * **/Firmware** - Sketches running on the built-in ATTiny84 (.h, .ino)
 * **/Hardware** - Eagle design files (.brd, .sch)
-* **/Production** - Production panel files (.brd)
+* **/Hardware/Production** - Production panel files (.brd)
 
 Documentation
 --------------

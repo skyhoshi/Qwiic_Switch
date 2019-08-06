@@ -2,8 +2,8 @@ SparkFun Qwiic Switch/Arcade
 ========================================
 <table class="table table-hover table-striped table-bordered">
   <tr align="center">
-   <td><a href="https://www.sparkfun.com/products/15592"><img src="https://cdn.sparkfun.com//assets/parts/1/3/5/1/4/15136-SparkFun_GPS-RTK2_Board_-_ZED-F9P__Qwiic_-03.jpg"></a></td>
-   <td><a href="https://www.sparkfun.com/products/15591"><img src="https://cdn.sparkfun.com//assets/parts/1/3/3/2/0/15005-SparkFun_GPS-RTK__Qwiic__-_NEO-M8P-2-00.jpg"></a></td>
+   <td><a href="https://www.sparkfun.com/products/15591"><img src="https://cdn.sparkfun.com//assets/parts/1/4/1/9/8/15591-Qwiic_Arcade_-_Red-01.jpg"></a></td>
+   <td><a href="https://www.sparkfun.com/products/15592"><img src="https://cdn.sparkfun.com//assets/parts/1/4/1/9/9/15592-Qwiic_Arcade_-_Blue-01.jpg"></a></td>
    <td><a href="https://www.sparkfun.com/products/15586"><img src="https://cdn.sparkfun.com//assets/parts/1/4/1/9/2/15586-Qwiic_Switch__without_microswitch_-01.jpg"></a></td>
   </tr>
   <tr align="center">

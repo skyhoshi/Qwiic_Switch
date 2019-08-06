@@ -18,7 +18,7 @@ The SparkFun Qwiic Switch and Qwiic Arcade are I<sup>2</sup>C enabled boards wit
 Repository Contents
 -------------------
 
-* **/Firmware** - Sketches running on the built-in ATTiny84 (.h, .ino)
+* **/Firmware** - Firmware for the built-in ATTiny84 on the Qwiic Button/Switch/Arcade (.h, .ino)
 * **/Hardware** - Eagle design files (.brd, .sch)
 * **/Hardware/Production** - Production panel files (.brd)
 

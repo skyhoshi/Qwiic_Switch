@@ -56,7 +56,7 @@
 
 //Software Self-Identification configuration
 //Please update these appropriately before uploading!
-#define __SWITCH__ //The device that this code will run on. Set to __BUTTON__ for the Qwiic Button, and __SWITCH__ for the Qwiic Switch.
+#define __BUTTON__ //The device that this code will run on. Set to __BUTTON__ for the Qwiic Button, and __SWITCH__ for the Qwiic Switch.
 
 #define SWITCH_DEVICE_ID 0x5E
 #define BUTTON_DEVICE_ID 0x5D
@@ -308,7 +308,7 @@ void readSystemSettings(memoryMap* map){
   EEPROM.get(LOCATION_I2C_ADDRESS, map->i2cAddress);
   if (map->i2cAddress == 255){
     map->i2cAddress = DEFAULT_I2C_ADDRESS; //By default, we listen for DEFAULT_I2C_ADDRESS
-    EEPROM.update(LOCATION_I2C_ADDRESS, map->i2cAddress);
+    EEPROM.put(LOCATION_I2C_ADDRESS, map->i2cAddress);
   }
 
   //Error check I2C address we read from EEPROM
@@ -316,38 +316,38 @@ void readSystemSettings(memoryMap* map){
     //User has set the address out of range
     //Go back to defaults
     map->i2cAddress = DEFAULT_I2C_ADDRESS;
-    EEPROM.update(LOCATION_I2C_ADDRESS, map->i2cAddress);
+    EEPROM.put(LOCATION_I2C_ADDRESS, map->i2cAddress);
   }
 
   //Read the interrupt bits
   EEPROM.get(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
   if (map->interruptConfig.byteWrapped == 0xFF){ //Blank
-    map->interruptConfig.byteWrapped = 0x03; //By default, enable the click and pressed interrupts
-    EEPROM.update(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
+    map->interruptConfig.byteWrapped = 0x00; //By default, enable the click and pressed interrupts
+    EEPROM.put(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
   }
 
   EEPROM.get(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
   if (map->ledPulseGranularity == 0xFF){
     map->ledPulseGranularity = 0; //Default to none
-    EEPROM.update(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
+    EEPROM.put(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
   }
 
   EEPROM.get(LOCATION_LED_PULSECYCLETIME, map->ledPulseCycleTime);
   if (map->ledPulseCycleTime == 0xFFFF){
     map->ledPulseCycleTime = 0; //Default to none
-    EEPROM.update(LOCATION_LED_PULSECYCLETIME, map->ledPulseCycleTime);
+    EEPROM.put(LOCATION_LED_PULSECYCLETIME, map->ledPulseCycleTime);
   }
 
   EEPROM.get(LOCATION_LED_PULSEOFFTIME, map->ledPulseOffTime);
   if (map->ledPulseOffTime == 0xFFFF){
     map->ledPulseOffTime = 0; //Default to none
-    EEPROM.update(LOCATION_LED_PULSECYCLETIME, map->ledPulseOffTime);
+    EEPROM.put(LOCATION_LED_PULSECYCLETIME, map->ledPulseOffTime);
   }
 
   EEPROM.get(LOCATION_BUTTON_DEBOUNCE_TIME, map->buttonDebounceTime);
   if (map->buttonDebounceTime == 0xFFFF){
     map->buttonDebounceTime = 10; //Default to 10ms
-    EEPROM.update(LOCATION_BUTTON_DEBOUNCE_TIME, map->buttonDebounceTime);
+    EEPROM.put(LOCATION_BUTTON_DEBOUNCE_TIME, map->buttonDebounceTime);
   }
 
   //Read the starting value for the LED

@@ -6,7 +6,7 @@ Original Creation Date: July 31, 2019
 This file defines the LEDconfig struct, which provides an easy interface for
 handling how the LED behaves, in addition to storing configuration variables.
 
-On the Qwiic Button, this LED is built intothe button itself! 
+On the Qwiic Button, this LED is built into the button itself! 
 On the Qwiic Switch, a pin for an external LED is provided on the 0.1" header
 located on the bottom of the switch.
 

@@ -50,18 +50,22 @@ typedef union {
 
 typedef struct memoryMap { 
   //Button Status/Configuration                       Register Address
-  statusRegisterBitField buttonStatus;                    // 0x00
-  uint16_t buttonDebounceTime;                            // 0x01
+  uint8_t id;                                             // 0x00
+  uint8_t firmwareMinor;                                  // 0x02
+  uint8_t firmwareMajor;                                  // 0x03
+
+  statusRegisterBitField buttonStatus;                    // 0x01
 
   //Interrupt Configuration
-  interruptConfigBitField interruptConfig;                // 0x03
-  
-  //ButtonPressed queue manipulation and status functions
-  queueStatusBitField pressedQueueStatus;                 // 0x04      
-  unsigned long pressedQueueFront;                        // 0x05
-  unsigned long pressedQueueBack;                         // 0x09 
+  interruptConfigBitField interruptConfig;                // 0x04
+  uint16_t buttonDebounceTime;                            // 0x05
 
-  queueStatusBitField clickedQueueStatus;                 // 0x0D
+  //ButtonPressed queue manipulation and status functions
+  queueStatusBitField pressedQueueStatus;                 // 0x07
+  unsigned long pressedQueueFront;                        // 0x08
+  unsigned long pressedQueueBack;                         // 0x0C
+
+  queueStatusBitField clickedQueueStatus;                 // 0x10
   unsigned long clickedQueueFront;                        // 0x0E
   unsigned long clickedQueueBack;                         // 0x12
 
@@ -73,7 +77,4 @@ typedef struct memoryMap {
 
   //Device Configuration
   uint8_t i2cAddress;                                     // 0x1C
-  uint8_t id;                                             // 0x1D
-  uint8_t firmwareMinor;                                  // 0x1E
-  uint8_t firmwareMajor;                                  // 0x1F
 };

@@ -31,8 +31,8 @@
   EEPROM.h      Used for interfacing with the onboard EEPROM for storing and retrieving settings.
   nvm.h         Used for defining the storage locations in non-volatile memory (EEPROM) to store and retrieve settings from.
   queue.h       Used for defining a FIFO-queue that contains the timestamps associated with pressing and clicking the button.
-  registers.h   Used for defining a memoryMap object that serves as the register map for the device. 
-  led.h         Used for configuring the behavior of the onboard LED (in the case of the Qwiic Button) 
+  registers.h   Used for defining a memoryMap object that serves as the register map for the device.
+  led.h         Used for configuring the behavior of the onboard LED (in the case of the Qwiic Button)
                   or the offboard LED (in the case of the Qwiic Switch)
 
   PinChangeInterrupt.h    Nico Hoo's library for triggering an interrupt on a pin state change (either low->high or high->low)
@@ -61,18 +61,18 @@
 #define SWITCH_DEVICE_ID 0x5E
 #define BUTTON_DEVICE_ID 0x5D
 #define FIRMWARE_MAJOR 0x01 //Firmware Version. Helpful for tech support.
-#define FIRMWARE_MINOR 0x00
+#define FIRMWARE_MINOR 0x01
 
 #if defined __SWITCH__
 #define DEVICE_ID SWITCH_DEVICE_ID
 #define DEFAULT_I2C_ADDRESS 0x46
-#define FORCED_I2C_ADDRESS 0x47
+#define FORCED_I2C_ADDRESS 0x45
 #endif
 
 #if defined __BUTTON__
 #define DEVICE_ID BUTTON_DEVICE_ID
-#define DEFAULT_I2C_ADDRESS 0x60
-#define FORCED_I2C_ADDRESS 0x60 //This is can whatever we want as this parameter is only used by the switch
+#define DEFAULT_I2C_ADDRESS 0x6F
+//Button has four address jumpers so there is no single FORCED_I2C_ADDRESS
 #endif
 
 //Hardware connections
@@ -104,45 +104,44 @@ const uint8_t interruptPin = 0; //pin is active-low, high-impedance when not tri
 
 //Variables used in the I2C interrupt.ino file so we use volatile
 volatile memoryMap registerMap {
-  {0,0},          //buttonStatus {isPressed, hasBeenClicked}
-  0x000A,         //buttonDebounceTime
-  {0,0,0},        //interruptConfig {pressedEnable, clickedEnable, status}
-  {0,1,0},        //pressedQueueStatus {isFull, isEmpty, popRequest}
-  0x00000000,     //pressedQueueFront
-  0x00000000,     //pressedQueueBack
-  {0,1,0},        //clickedQueueStatus {isFull, isEmpty, popRequest}
-  0x00000000,     //clickedQueueFront
-  0x00000000,     //clickedQueueBack
-  0x00,           //ledBrightness
-  0x01,           //ledPulseGranularity
-  0x0000,         //ledPulseCycleTime
-  0x0000,         //ledPulseOffTime
-  DEFAULT_I2C_ADDRESS,  //i2cAddress
-  DEVICE_ID,            //id
-  FIRMWARE_MINOR,       //firmwareMinor
-  FIRMWARE_MAJOR,       //firmwareMajor
+  DEVICE_ID,           //id
+  FIRMWARE_MINOR,      //firmwareMinor
+  FIRMWARE_MAJOR,      //firmwareMajor
+  {0, 0},              //buttonStatus {isPressed, hasBeenClicked}
+  {0, 0, 0},           //interruptConfig {pressedEnable, clickedEnable, status}
+  0x000A,              //buttonDebounceTime
+  {0, 1, 0},           //pressedQueueStatus {isFull, isEmpty, popRequest}
+  0x00000000,          //pressedQueueFront
+  0x00000000,          //pressedQueueBack
+  {0, 1, 0},           //clickedQueueStatus {isFull, isEmpty, popRequest}
+  0x00000000,          //clickedQueueFront
+  0x00000000,          //clickedQueueBack
+  0x00,                //ledBrightness
+  0x01,                //ledPulseGranularity
+  0x0000,              //ledPulseCycleTime
+  0x0000,              //ledPulseOffTime
+  DEFAULT_I2C_ADDRESS, //i2cAddress
 };
-
 
 //This defines which of the registers are read-only (0) vs read-write (1)
 memoryMap protectionMap = {
-  {0,1},          //buttonStatus {isPressed, hasBeenClicked}
-  0xFFFF,         //buttonDebounceTime
-  {1,1,1},        //interruptConfig {pressedEnable, clickedEnable, status}
-  {0,0,1},        //pressedQueueStatus {isFull, isEmpty, popRequest}
-  0x00000000,     //pressedQueueFront
-  0x00000000,     //pressedQueueBack
-  {0,0,1},        //clickedQueueStatus {isFull, isEmpty, popRequest}
-  0x00000000,     //clickedQueueFront
-  0x00000000,     //clickedQueueBack
-  0xFF,           //ledBrightness
-  0xFF,           //ledPulseGranularity
-  0xFFFF,         //ledPulseCycleTime
-  0xFFFF,         //ledPulseOffTime
-  0xFF,           //i2cAddress
-  0x00,           //id
-  0x00,           //firmwareMinor
-  0x00,           //firmwareMajor
+  0x00,       //id
+  0x00,       //firmwareMinor
+  0x00,       //firmwareMajor
+  {0, 1},     //buttonStatus {isPressed, hasBeenClicked}
+  {1, 1, 1},  //interruptConfig {pressedEnable, clickedEnable, status}
+  0xFFFF,     //buttonDebounceTime
+  {0, 0, 1},  //pressedQueueStatus {isFull, isEmpty, popRequest}
+  0x00000000, //pressedQueueFront
+  0x00000000, //pressedQueueBack
+  {0, 0, 1},  //clickedQueueStatus {isFull, isEmpty, popRequest}
+  0x00000000, //clickedQueueFront
+  0x00000000, //clickedQueueBack
+  0xFF,       //ledBrightness
+  0xFF,       //ledPulseGranularity
+  0xFFFF,     //ledPulseCycleTime
+  0xFFFF,     //ledPulseOffTime
+  0xFF,       //i2cAddress
 };
 
 //Cast 32bit address of the object registerMap with uint8_t so we can increment the pointer
@@ -159,7 +158,8 @@ LEDconfig onboardLED; //init the onboard LED
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-void setup(void) {
+void setup(void)
+{
   //configure I/O
   pinMode(addressPin0, INPUT_PULLUP); //internally pull up address pins
   pinMode(addressPin1, INPUT_PULLUP); //when the user solders a jumper the pin will read as LOW, otherwise it will read as HIGH
@@ -173,14 +173,14 @@ void setup(void) {
   digitalWrite(statusLedPin, 0);
 
   pinMode(switchPin, INPUT_PULLUP); //GPIO with internal pullup, goes low when button is pushed
-  pinMode(interruptPin, INPUT); //High-impedance input until we have an int and then we output low. Pulled high with 10k with cuttable jumper.
+  pinMode(interruptPin, INPUT);     //High-impedance input until we have an int and then we output low. Pulled high with 10k with cuttable jumper.
 
   //Disable ADC
   ADCSRA = 0;
 
   //Disable Brown-Out Detect
-  MCUCR = bit (BODS) | bit (BODSE);
-  MCUCR = bit (BODS);
+  MCUCR = bit(BODS) | bit(BODSE);
+  MCUCR = bit(BODS);
 
   //Power down various bits of hardware to lower power usage
   //set_sleep_mode(SLEEP_MODE_PWR_DOWN); //May turn off millis
@@ -191,16 +191,16 @@ void setup(void) {
 
 #if defined(__AVR_ATmega328P__)
   //Debug values
-  registerMap.ledBrightness = 255; //Max brightness
+  registerMap.ledBrightness = 255;     //Max brightness
   registerMap.ledPulseGranularity = 1; //Amount to change LED at each step
 
   registerMap.ledPulseCycleTime = 500; //Total amount of cycle, does not include off time. LED pulse disabled if zero.
-  registerMap.ledPulseOffTime = 500; //Off time between pulses
+  registerMap.ledPulseOffTime = 500;   //Off time between pulses
 #endif
 
   onboardLED.update(&registerMap); //update LED variables, get ready for pulsing
-  setupInterrupts(); //Enable pin change interrupts for I2C, switch, etc
-  startI2C(&registerMap); //Determine the I2C address we should be using and begin listening on I2C bus
+  setupInterrupts();               //Enable pin change interrupts for I2C, switch, etc
+  startI2C(&registerMap);          //Determine the I2C address we should be using and begin listening on I2C bus
 
 #if defined(__AVR_ATmega328P__)
   Serial.begin(115200);
@@ -211,21 +211,25 @@ void setup(void) {
   Serial.println(registerMap.id, HEX);
 #endif
 
-  digitalWrite(statusLedPin, HIGH); //turn on the status LED to notify that we've setup everything properly  
+  digitalWrite(statusLedPin, HIGH); //turn on the status LED to notify that we've setup everything properly
 }
 
-void loop(void) {
-  if (updateFlag == true){
+void loop(void)
+{
+  if (updateFlag == true)
+  {
     //Calculate LED values based on pulse settings if anything has changed
     onboardLED.update(&registerMap);
 
     //update interruptPin output
-    if(registerMap.interruptConfig.status) { //if the interrupt is triggered
+    if (registerMap.interruptConfig.status)
+    { //if the interrupt is triggered
       pinMode(interruptPin, OUTPUT); //make the interrupt pin a low-impedance connection to ground
       digitalWrite(interruptPin, LOW);
     }
 
-    else { //go to high-impedance mode on the interrupt pin if the interrupt is not triggered
+    else
+    { //go to high-impedance mode on the interrupt pin if the interrupt is not triggered
       pinMode(interruptPin, INPUT);
     }
 
@@ -236,83 +240,93 @@ void loop(void) {
     updateFlag = false; //clear flag
   }
 
-  sleep_mode(); //Stop everything and go to sleep. Wake up if I2C event occurs.
+  sleep_mode();             //Stop everything and go to sleep. Wake up if I2C event occurs.
   onboardLED.pulse(ledPin); //update the brightness of the LED
 }
 
-
 //Update slave I2C address to what's configured with registerMap.i2cAddress and/or the address jumpers.
-void startI2C(memoryMap* map) {
+void startI2C(memoryMap *map)
+{
   uint8_t address;
 
-    //if we're on the button, check all three IO pins to see if we're going to get the address from jumpers or reg`terMap
-    if(DEVICE_ID == BUTTON_DEVICE_ID) {
-        uint8_t IOaddress = DEFAULT_I2C_ADDRESS;
-        bitWrite(IOaddress, 0, !digitalRead(addressPin0));
-        bitWrite(IOaddress, 1, !digitalRead(addressPin1));
-        bitWrite(IOaddress, 2, !digitalRead(addressPin2));
-        bitWrite(IOaddress, 3, !digitalRead(addressPin3));
+  //if we're on the button, check all three IO pins to see if we're going to get the address from jumpers or registerMap
+#if defined __BUTTON__
+  uint8_t IOaddress = DEFAULT_I2C_ADDRESS;
+  bitWrite(IOaddress, 0, digitalRead(addressPin0));
+  bitWrite(IOaddress, 1, digitalRead(addressPin1));
+  bitWrite(IOaddress, 2, digitalRead(addressPin2));
+  bitWrite(IOaddress, 3, digitalRead(addressPin3));
 
-        //if any of the address jumpers are set, we use jumpers
-        if(IOaddress != DEFAULT_I2C_ADDRESS) {
-            // note: we're not checking to see if this is a valid address, as it's implied that whoever is editing the
-            // #defines at the top of the file knows what they're doing
-            address = IOaddress;
-        }
+  //if any of the address jumpers are set, we use jumpers
+  if (IOaddress != DEFAULT_I2C_ADDRESS)
+  {
+    // note: we're not checking to see if this is a valid address, as it's implied that whoever is editing the
+    // #defines at the top of the file knows what they're doing
+    address = IOaddress;
+  }
 
-        //if none of the address jumpers are set, we use registerMap (but check to make sure that the value is legal first)
-        else {
-            //if the value is legal, then set it
-            if(map->i2cAddress > 0x07 && map->i2cAddress < 0x78) address = map->i2cAddress;
+  //if none of the address jumpers are set, we use registerMap (but check to make sure that the value is legal first)
+  else
+  {
+    //if the value is legal, then set it
+    if (map->i2cAddress > 0x07 && map->i2cAddress < 0x78)
+      address = map->i2cAddress;
 
-            //if the value is illegal, default to the default I2C address for our platform
-            else address = DEFAULT_I2C_ADDRESS;
-        }
-    }
+    //if the value is illegal, default to the default I2C address for our platform
+    else
+      address = DEFAULT_I2C_ADDRESS;
+  }
+#endif
 
-    //if we're on the switch, just check the one IO pin to see if we're going to get the address from jumpers or registerMap
-    if(DEVICE_ID == SWITCH_DEVICE_ID) {
-        //if the jumper is closed, use the forced I2C address
+  //if we're on the switch, just check the one IO pin to see if we're going to get the address from jumpers or registerMap
+#if defined __SWITCH__
+  //if the jumper is closed, use the forced I2C address
 
-        // note: we're not checking to see if this is a valid address, as it's implied that whoever is editing the 
-        // #defines at the top of the file knows what they're doing
-        if(!digitalRead(addressPin0)) address = FORCED_I2C_ADDRESS;
+  // note: we're not checking to see if this is a valid address, as it's implied that whoever is editing the
+  // #defines at the top of the file knows what they're doing
+  if (!digitalRead(addressPin0))
+    address = FORCED_I2C_ADDRESS;
 
-        //if the jumper isn't closed, we use registerMap (but check to make sure that the value is legal first)
-        else {
-            //if the value is legal, then set it
-            if(map->i2cAddress > 0x07 && map->i2cAddress < 0x78) address = map->i2cAddress;
+  //if the jumper isn't closed, we use registerMap (but check to make sure that the value is legal first)
+  else
+  {
+    //if the value is legal, then set it
+    if (map->i2cAddress > 0x07 && map->i2cAddress < 0x78)
+      address = map->i2cAddress;
 
-            //if the value is illegal, default to the default I2C address for our platform
-            else address = DEFAULT_I2C_ADDRESS;
-        }
-    }
+    //if the value is illegal, default to the default I2C address for our platform
+    else
+      address = DEFAULT_I2C_ADDRESS;
+  }
+#endif
 
+  //save new address to the register map
+  map->i2cAddress = address;
 
-    //save new address to the register map
-    map->i2cAddress = address;
+  //reconfigure Wire instance
+  Wire.end();          //stop I2C on old address
+  Wire.begin(address); //rejoin the I2C bus on new address
 
-    //reconfigure Wire instance
-    Wire.end(); //stop I2C on old address
-    Wire.begin(address); //rejoin the I2C bus on new address
-
-    //The connections to the interrupts are severed when a Wire.begin occurs, so here we reattach them
-    Wire.onReceive(receiveEvent);
-    Wire.onRequest(requestEvent);
+  //The connections to the interrupts are severed when a Wire.begin occurs, so here we reattach them
+  Wire.onReceive(receiveEvent);
+  Wire.onRequest(requestEvent);
 }
 
 //Reads the current system settings from EEPROM
 //If anything looks weird, reset setting to default value
-void readSystemSettings(memoryMap* map){
+void readSystemSettings(memoryMap *map)
+{
   //Read what I2C address we should use
   EEPROM.get(LOCATION_I2C_ADDRESS, map->i2cAddress);
-  if (map->i2cAddress == 255){
+  if (map->i2cAddress == 255)
+  {
     map->i2cAddress = DEFAULT_I2C_ADDRESS; //By default, we listen for DEFAULT_I2C_ADDRESS
     EEPROM.put(LOCATION_I2C_ADDRESS, map->i2cAddress);
   }
 
   //Error check I2C address we read from EEPROM
-  if (map->i2cAddress < 0x08 || map->i2cAddress > 0x77){
+  if (map->i2cAddress < 0x08 || map->i2cAddress > 0x77)
+  {
     //User has set the address out of range
     //Go back to defaults
     map->i2cAddress = DEFAULT_I2C_ADDRESS;
@@ -321,51 +335,60 @@ void readSystemSettings(memoryMap* map){
 
   //Read the interrupt bits
   EEPROM.get(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
-  if (map->interruptConfig.byteWrapped == 0xFF){ //Blank
+  if (map->interruptConfig.byteWrapped == 0xFF)
+  { //Blank
     map->interruptConfig.byteWrapped = 0x00; //By default, enable the click and pressed interrupts
     EEPROM.put(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
   }
 
   EEPROM.get(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
-  if (map->ledPulseGranularity == 0xFF){
+  if (map->ledPulseGranularity == 0xFF)
+  {
     map->ledPulseGranularity = 0; //Default to none
     EEPROM.put(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
   }
 
   EEPROM.get(LOCATION_LED_PULSECYCLETIME, map->ledPulseCycleTime);
-  if (map->ledPulseCycleTime == 0xFFFF){
+  if (map->ledPulseCycleTime == 0xFFFF)
+  {
     map->ledPulseCycleTime = 0; //Default to none
     EEPROM.put(LOCATION_LED_PULSECYCLETIME, map->ledPulseCycleTime);
   }
 
   EEPROM.get(LOCATION_LED_PULSEOFFTIME, map->ledPulseOffTime);
-  if (map->ledPulseOffTime == 0xFFFF){
+  if (map->ledPulseOffTime == 0xFFFF)
+  {
     map->ledPulseOffTime = 0; //Default to none
     EEPROM.put(LOCATION_LED_PULSECYCLETIME, map->ledPulseOffTime);
   }
 
   EEPROM.get(LOCATION_BUTTON_DEBOUNCE_TIME, map->buttonDebounceTime);
-  if (map->buttonDebounceTime == 0xFFFF){
+  if (map->buttonDebounceTime == 0xFFFF)
+  {
     map->buttonDebounceTime = 10; //Default to 10ms
     EEPROM.put(LOCATION_BUTTON_DEBOUNCE_TIME, map->buttonDebounceTime);
   }
 
   //Read the starting value for the LED
   EEPROM.get(LOCATION_LED_BRIGHTNESS, map->ledBrightness);
-  if (map->ledPulseCycleTime > 0){
+  if (map->ledPulseCycleTime > 0)
+  {
     //Don't turn on LED, we'll pulse it in main loop
     analogWrite(ledPin, 0);
   }
-  else { //Pulsing disabled
+  else
+  { //Pulsing disabled
     //Turn on LED to setting
     analogWrite(ledPin, map->ledBrightness);
   }
 }
 
 //If the current setting is different from that in EEPROM, update EEPROM
-void recordSystemSettings(memoryMap* map) {
+void recordSystemSettings(memoryMap *map)
+{
   //Error check the current I2C address
-  if (map->i2cAddress < 0x08 || map->i2cAddress > 0x77){
+  if (map->i2cAddress < 0x08 || map->i2cAddress > 0x77)
+  {
     //User has set the address out of range
     //Go back to defaults
     map->i2cAddress = DEFAULT_I2C_ADDRESS;

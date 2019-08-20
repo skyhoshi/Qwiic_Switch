@@ -356,11 +356,11 @@ void recordSystemSettings(memoryMap *map)
     startI2C(map); //Determine the I2C address we should be using and begin listening on I2C bus
   }
 
-  EEPROM.update(LOCATION_I2C_ADDRESS, map->i2cAddress);
-  EEPROM.update(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
-  EEPROM.update(LOCATION_LED_BRIGHTNESS, map->ledBrightness);
-  EEPROM.update(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
-  EEPROM.update(LOCATION_LED_PULSECYCLETIME, map->ledPulseCycleTime);
-  EEPROM.update(LOCATION_LED_PULSEOFFTIME, map->ledPulseOffTime);
-  EEPROM.update(LOCATION_BUTTON_DEBOUNCE_TIME, map->buttonDebounceTime);
+  EEPROM.put(LOCATION_I2C_ADDRESS, map->i2cAddress);
+  EEPROM.put(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
+  EEPROM.put(LOCATION_LED_BRIGHTNESS, map->ledBrightness);
+  EEPROM.put(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
+  EEPROM.put(LOCATION_LED_PULSECYCLETIME, map->ledPulseCycleTime);
+  EEPROM.put(LOCATION_LED_PULSEOFFTIME, map->ledPulseOffTime);
+  EEPROM.put(LOCATION_BUTTON_DEBOUNCE_TIME, map->buttonDebounceTime);
 }

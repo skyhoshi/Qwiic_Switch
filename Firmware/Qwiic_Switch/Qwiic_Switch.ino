@@ -57,6 +57,7 @@
 //Software Self-Identification configuration
 //Please update these appropriately before uploading!
 #define __BUTTON__ //The device that this code will run on. Set to __BUTTON__ for the Qwiic Button, and __SWITCH__ for the Qwiic Switch.
+//#define __SWITCH__
 
 #define SWITCH_DEVICE_ID 0x5E
 #define BUTTON_DEVICE_ID 0x5D
@@ -152,7 +153,9 @@ volatile uint8_t registerNumber; //Gets set when user writes an address. We then
 
 volatile boolean updateFlag = true; //Goes true when we receive new bytes from user. Causes LEDs and things to update in main loop.
 
-Queue ButtonPressed, ButtonClicked; //init FIFO buffer for storing timestamps associated with button presses and clicks
+volatile Queue ButtonPressed, ButtonClicked; //Init FIFO buffer for storing timestamps associated with button presses and clicks
+
+volatile unsigned long lastClickTime = 0; //Used for debouncing
 
 LEDconfig onboardLED; //init the onboard LED
 
@@ -160,9 +163,8 @@ LEDconfig onboardLED; //init the onboard LED
 
 void setup(void)
 {
-  //configure I/O
-  pinMode(addressPin0, INPUT_PULLUP); //internally pull up address pins
-  pinMode(addressPin1, INPUT_PULLUP); //when the user solders a jumper the pin will read as LOW, otherwise it will read as HIGH
+  pinMode(addressPin0, INPUT_PULLUP); //Internally pull up address pins
+  pinMode(addressPin1, INPUT_PULLUP); 
   pinMode(addressPin2, INPUT_PULLUP);
   pinMode(addressPin3, INPUT_PULLUP);
 
@@ -174,6 +176,9 @@ void setup(void)
 
   pinMode(switchPin, INPUT_PULLUP); //GPIO with internal pullup, goes low when button is pushed
   pinMode(interruptPin, INPUT);     //High-impedance input until we have an int and then we output low. Pulled high with 10k with cuttable jumper.
+
+  for(int x = 0 ; x < 100 ; x++)
+    EEPROM.put(x, 0xFF);
 
   //Disable ADC
   ADCSRA = 0;
@@ -242,6 +247,9 @@ void loop(void)
 
   sleep_mode();             //Stop everything and go to sleep. Wake up if I2C event occurs.
   onboardLED.pulse(ledPin); //update the brightness of the LED
+
+  //ButtonPressed.displayBuffer();
+  delay(100);
 }
 
 //Update slave I2C address to what's configured with registerMap.i2cAddress and/or the address jumpers.
@@ -336,7 +344,7 @@ void readSystemSettings(memoryMap *map)
   //Read the interrupt bits
   EEPROM.get(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
   if (map->interruptConfig.byteWrapped == 0xFF)
-  { //Blank
+  { 
     map->interruptConfig.byteWrapped = 0x00; //By default, enable the click and pressed interrupts
     EEPROM.put(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
   }

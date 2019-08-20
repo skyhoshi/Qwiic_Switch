@@ -66,15 +66,15 @@ typedef struct memoryMap {
   unsigned long pressedQueueBack;                         // 0x0C
 
   queueStatusBitField clickedQueueStatus;                 // 0x10
-  unsigned long clickedQueueFront;                        // 0x0E
-  unsigned long clickedQueueBack;                         // 0x12
+  unsigned long clickedQueueFront;                        // 0x11
+  unsigned long clickedQueueBack;                         // 0x15
 
   //LED Configuration
-  uint8_t ledBrightness;                                  // 0x16
-  uint8_t ledPulseGranularity;                            // 0x17
-  uint16_t ledPulseCycleTime;                             // 0x18
-  uint16_t ledPulseOffTime;                               // 0x1A
+  uint8_t ledBrightness;                                  // 0x19
+  uint8_t ledPulseGranularity;                            // 0x1A
+  uint16_t ledPulseCycleTime;                             // 0x1B
+  uint16_t ledPulseOffTime;                               // 0x1D
 
   //Device Configuration
-  uint8_t i2cAddress;                                     // 0x1C
+  uint8_t i2cAddress;                                     // 0x1F
 };

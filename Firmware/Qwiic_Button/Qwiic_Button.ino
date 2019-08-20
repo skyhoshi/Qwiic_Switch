@@ -13,7 +13,7 @@
   to zero. The register will then be filled with the next available event time.
 
   There is also an accompanying Arduino Library located here:
-  https://github.com/sparkfun/SparkFun_Qwiic_Switch_Arduino_Library
+  https://github.com/sparkfun/SparkFun_Qwiic_Button_Arduino_Library
 
   Feel like supporting our work? Buy a board from SparkFun!
   https://www.sparkfun.com/products/14641
@@ -235,7 +235,7 @@ void startI2C(memoryMap *map)
 {
   uint8_t address;
 
-  //Button PCB has 4 jumpers, switch has one. But we check all pins even when there
+  //Button PCB has 4 jumpers, Switch PCB has one. But we check all pins even when there
   //is no jumper (will always be high).
   uint8_t IOaddress = DEFAULT_I2C_ADDRESS;
   bitWrite(IOaddress, 0, digitalRead(addressPin0));

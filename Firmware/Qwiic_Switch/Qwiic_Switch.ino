@@ -54,27 +54,11 @@
 #include <avr/sleep.h> //Needed for sleep_mode
 #include <avr/power.h> //Needed for powering down perihperals such as the ADC/TWI and Timers
 
-//Software Self-Identification configuration
-//Please update these appropriately before uploading!
-#define __BUTTON__ //The device that this code will run on. Set to __BUTTON__ for the Qwiic Button, and __SWITCH__ for the Qwiic Switch.
-//#define __SWITCH__
-
-#define SWITCH_DEVICE_ID 0x5E
-#define BUTTON_DEVICE_ID 0x5D
+#define DEVICE_ID 0x5D
 #define FIRMWARE_MAJOR 0x01 //Firmware Version. Helpful for tech support.
 #define FIRMWARE_MINOR 0x01
 
-#if defined __SWITCH__
-#define DEVICE_ID SWITCH_DEVICE_ID
-#define DEFAULT_I2C_ADDRESS 0x46
-#define FORCED_I2C_ADDRESS 0x45
-#endif
-
-#if defined __BUTTON__
-#define DEVICE_ID BUTTON_DEVICE_ID
 #define DEFAULT_I2C_ADDRESS 0x6F
-//Button has four address jumpers so there is no single FORCED_I2C_ADDRESS
-#endif
 
 //Hardware connections
 #if defined(__AVR_ATmega328P__)
@@ -177,9 +161,6 @@ void setup(void)
   pinMode(switchPin, INPUT_PULLUP); //GPIO with internal pullup, goes low when button is pushed
   pinMode(interruptPin, INPUT);     //High-impedance input until we have an int and then we output low. Pulled high with 10k with cuttable jumper.
 
-  for(int x = 0 ; x < 100 ; x++)
-    EEPROM.put(x, 0xFF);
-
   //Disable ADC
   ADCSRA = 0;
 
@@ -247,9 +228,6 @@ void loop(void)
 
   sleep_mode();             //Stop everything and go to sleep. Wake up if I2C event occurs.
   onboardLED.pulse(ledPin); //update the brightness of the LED
-
-  //ButtonPressed.displayBuffer();
-  delay(100);
 }
 
 //Update slave I2C address to what's configured with registerMap.i2cAddress and/or the address jumpers.
@@ -257,23 +235,21 @@ void startI2C(memoryMap *map)
 {
   uint8_t address;
 
-  //if we're on the button, check all three IO pins to see if we're going to get the address from jumpers or registerMap
-#if defined __BUTTON__
+  //Button PCB has 4 jumpers, switch has one. But we check all pins even when there
+  //is no jumper (will always be high).
   uint8_t IOaddress = DEFAULT_I2C_ADDRESS;
   bitWrite(IOaddress, 0, digitalRead(addressPin0));
   bitWrite(IOaddress, 1, digitalRead(addressPin1));
   bitWrite(IOaddress, 2, digitalRead(addressPin2));
   bitWrite(IOaddress, 3, digitalRead(addressPin3));
 
-  //if any of the address jumpers are set, we use jumpers
+  //If any of the address jumpers are set, we use jumpers
   if (IOaddress != DEFAULT_I2C_ADDRESS)
   {
-    // note: we're not checking to see if this is a valid address, as it's implied that whoever is editing the
-    // #defines at the top of the file knows what they're doing
     address = IOaddress;
   }
 
-  //if none of the address jumpers are set, we use registerMap (but check to make sure that the value is legal first)
+  //If none of the address jumpers are set, we use registerMap (but check to make sure that the value is legal first)
   else
   {
     //if the value is legal, then set it
@@ -284,29 +260,6 @@ void startI2C(memoryMap *map)
     else
       address = DEFAULT_I2C_ADDRESS;
   }
-#endif
-
-  //if we're on the switch, just check the one IO pin to see if we're going to get the address from jumpers or registerMap
-#if defined __SWITCH__
-  //if the jumper is closed, use the forced I2C address
-
-  // note: we're not checking to see if this is a valid address, as it's implied that whoever is editing the
-  // #defines at the top of the file knows what they're doing
-  if (!digitalRead(addressPin0))
-    address = FORCED_I2C_ADDRESS;
-
-  //if the jumper isn't closed, we use registerMap (but check to make sure that the value is legal first)
-  else
-  {
-    //if the value is legal, then set it
-    if (map->i2cAddress > 0x07 && map->i2cAddress < 0x78)
-      address = map->i2cAddress;
-
-    //if the value is illegal, default to the default I2C address for our platform
-    else
-      address = DEFAULT_I2C_ADDRESS;
-  }
-#endif
 
   //save new address to the register map
   map->i2cAddress = address;

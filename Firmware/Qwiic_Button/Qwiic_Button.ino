@@ -235,7 +235,7 @@ void startI2C(memoryMap *map)
 {
   uint8_t address;
 
-  //Button PCB has 4 jumpers, Switch PCB has one. But we check all pins even when there
+  //Button PCB has 4 jumpers, the arcade/micro switch PCB has one. But we check all pins even when there
   //is no jumper (will always be high).
   uint8_t IOaddress = DEFAULT_I2C_ADDRESS;
   bitWrite(IOaddress, 0, digitalRead(addressPin0));

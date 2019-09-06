@@ -1,29 +1,29 @@
 /******************************************************************************
-registers.h
-Fischer Moseley @ SparkFun Electronics
-Original Creation Date: July 31, 2019
+  registers.h
+  Fischer Moseley @ SparkFun Electronics
+  Original Creation Date: July 31, 2019
 
-This file defines the memoryMap struct, which acts as the pseudo register map
-of the Qwiic Button/Switch. It also serves as an easy way to access variables
-and manipulate the state of the device.
+  This file defines the memoryMap struct, which acts as the pseudo register map
+  of the Qwiic Button/Switch. It also serves as an easy way to access variables
+  and manipulate the state of the device.
 
-During I2C transactions, the memoryMap object is wrapped as a collection of
-bytes. The byte that the user is interested in (either to read or write) is
-selected with a register pointer. For instance, if the user sets the pointer
-to 0x0e, they will be addressing the 4th uint8_t sized object in this struct.
-In this case, that would be the interruptConfig register!
+  During I2C transactions, the memoryMap object is wrapped as a collection of
+  bytes. The byte that the user is interested in (either to read or write) is
+  selected with a register pointer. For instance, if the user sets the pointer
+  to 0x0e, they will be addressing the 4th uint8_t sized object in this struct.
+  In this case, that would be the interruptConfig register!
 
-This code is beerware; if you see me (or any other SparkFun employee) at the
-local, and you've found our code helpful, please buy us a round!
+  This code is beerware; if you see me (or any other SparkFun employee) at the
+  local, and you've found our code helpful, please buy us a round!
 
-Distributed as-is; no warranty is given.
+  Distributed as-is; no warranty is given.
 ******************************************************************************/
 
 typedef union {
   struct {
-    bool : 6;
+    bool hasBeenClicked : 1; //This is bit 0. Mutable by user, basically behaves like an interrupt. Defaults to zero on POR, but gets set to one every time the button gets clicked. Can be cleared by the user, and that happens regularly in the accompnaying arduino library
     bool isPressed : 1;  //not mutable by user, set to zero if button is not pushed, set to one if button is pushed
-    bool hasBeenClicked : 1; //mutable by user, basically behaves like an interrupt. Defaults to zero on POR, but gets set to one every time the button gets clicked. Can be cleared by the user, and that happens regularly in the accompnaying arduino library
+    bool : 6;
   };
   uint8_t byteWrapped;
 } statusRegisterBitField;
@@ -40,15 +40,15 @@ typedef union {
 
 typedef union {
   struct {
-    bool: 5;
-    bool isFull : 1; //user immutable, returns 1 or 0 depending on whether or not the queue is full
+    bool popRequest : 1; //This is bit 0. User mutable, user sets to 1 to pop from queue, we pop from queue and set the bit back to zero.
     bool isEmpty : 1; //user immutable, returns 1 or 0 depending on whether or not the queue is empty
-    bool popRequest : 1; //user mutable, user sets to 1 to pop from queue, we pop from queue and set the bit back to zero.
+    bool isFull : 1; //user immutable, returns 1 or 0 depending on whether or not the queue is full
+    bool: 5;
   };
   uint8_t byteWrapped;
 } queueStatusBitField;
 
-typedef struct memoryMap { 
+typedef struct memoryMap {
   //Button Status/Configuration                       Register Address
   uint8_t id;                                             // 0x00
   uint8_t firmwareMinor;                                  // 0x01

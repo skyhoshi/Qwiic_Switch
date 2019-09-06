@@ -147,6 +147,8 @@ LEDconfig onboardLED; //init the onboard LED
 
 void setup(void)
 {
+
+  
   pinMode(addressPin0, INPUT_PULLUP); //Internally pull up address pins
   pinMode(addressPin1, INPUT_PULLUP); 
   pinMode(addressPin2, INPUT_PULLUP);
@@ -173,6 +175,20 @@ void setup(void)
   set_sleep_mode(SLEEP_MODE_IDLE);
   sleep_enable();
 
+#if defined(__AVR_ATmega328P__)
+
+    for (int x = 0; x<100; x++){
+     EEPROM.put(x, 0xFF);
+  }
+  
+  Serial.begin(115200);
+  Serial.println("Qwiic Button");
+  Serial.print("Address: 0x");
+  Serial.println(registerMap.i2cAddress, HEX);
+  Serial.print("Device ID: 0x");
+  Serial.println(registerMap.id, HEX);
+#endif
+
   readSystemSettings(&registerMap); //Load all system settings from EEPROM
 
 #if defined(__AVR_ATmega328P__)
@@ -188,14 +204,7 @@ void setup(void)
   setupInterrupts();               //Enable pin change interrupts for I2C, switch, etc
   startI2C(&registerMap);          //Determine the I2C address we should be using and begin listening on I2C bus
 
-#if defined(__AVR_ATmega328P__)
-  Serial.begin(115200);
-  Serial.println("Qwiic Button");
-  Serial.print("Address: 0x");
-  Serial.println(registerMap.i2cAddress, HEX);
-  Serial.print("Device ID: 0x");
-  Serial.println(registerMap.id, HEX);
-#endif
+
 
   digitalWrite(statusLedPin, HIGH); //turn on the status LED to notify that we've setup everything properly
 }
@@ -298,9 +307,12 @@ void readSystemSettings(memoryMap *map)
   EEPROM.get(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
   if (map->interruptConfig.byteWrapped == 0xFF)
   { 
-    map->interruptConfig.byteWrapped = 0x00; //By default, enable the click and pressed interrupts
+    Serial.println("here");
+    map->interruptConfig.byteWrapped = 0x06; //By default, enable the click and pressed interrupts
+    //registerMap.interruptConfig.pressedEnable = true;
     EEPROM.put(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
   }
+  Serial.println("There");
 
   EEPROM.get(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
   if (map->ledPulseGranularity == 0xFF)

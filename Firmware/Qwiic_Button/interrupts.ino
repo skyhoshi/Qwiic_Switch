@@ -98,15 +98,6 @@ void buttonInterrupt() {
     return;
   lastClickTime = millis();
 
-  //  digitalWrite(statusLedPin, LOW);
-  //  while (digitalRead(switchPin) == LOW)
-  //  {
-  //    ;
-  //    //    digitalWrite(statusLedPin, !digitalRead(statusLedPin));
-  //  }
-  //  digitalWrite(statusLedPin, HIGH);
-
-
   //Update the ButtonPressed queue and registerMap
   registerMap.buttonStatus.isPressed = !digitalRead(switchPin); //Take the inverse of the switch pin because the switch is pulled up
   ButtonPressed.push(millis() - registerMap.buttonDebounceTime);
@@ -114,7 +105,9 @@ void buttonInterrupt() {
   registerMap.pressedQueueStatus.isFull = ButtonPressed.isFull();
 
   //Set the interrupt bit if it's configured to trigger on a button press
-  if (registerMap.interruptConfig.pressedEnable && registerMap.buttonStatus.isPressed) registerMap.interruptConfig.status = true;
+  if (registerMap.interruptConfig.pressedEnable && registerMap.buttonStatus.isPressed){
+    registerMap.interruptConfig.status = true;
+  }
 
   //Update the ButtonClicked queue and registerMap if necessary
   if (digitalRead(switchPin) == HIGH) { //User has released the button, we have completed a click cycle

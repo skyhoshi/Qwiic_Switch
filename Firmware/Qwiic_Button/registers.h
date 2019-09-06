@@ -30,10 +30,10 @@ typedef union {
 
 typedef union {
   struct {
-    bool: 5;
-    bool pressedEnable : 1; //user mutable, set to 1 to enable an interrupt when the button is pressed. Defaults to 0.
+    bool status : 1; //This is bit 0. User mutable, gets set to 1 when the interrupt is triggered. User is expected to write 0 to clear the interrupt.
     bool clickedEnable : 1; //user mutable, set to 1 to enable an interrupt when the button is clicked. Defaults to 0.
-    bool status : 1; //user mutable, gets set to 1 when the interrupt is triggered. User is expected to write 0 to clear the interrupt.
+    bool pressedEnable : 1; //user mutable, set to 1 to enable an interrupt when the button is pressed. Defaults to 0.
+    bool: 5;
   };
   uint8_t byteWrapped;
 } interruptConfigBitField;
@@ -51,10 +51,10 @@ typedef union {
 typedef struct memoryMap { 
   //Button Status/Configuration                       Register Address
   uint8_t id;                                             // 0x00
-  uint8_t firmwareMinor;                                  // 0x02
-  uint8_t firmwareMajor;                                  // 0x03
+  uint8_t firmwareMinor;                                  // 0x01
+  uint8_t firmwareMajor;                                  // 0x02
 
-  statusRegisterBitField buttonStatus;                    // 0x01
+  statusRegisterBitField buttonStatus;                    // 0x03
 
   //Interrupt Configuration
   interruptConfigBitField interruptConfig;                // 0x04

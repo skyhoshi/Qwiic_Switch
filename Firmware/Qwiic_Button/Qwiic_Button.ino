@@ -127,6 +127,7 @@ memoryMap protectionMap = {
   0xFFFF,     //ledPulseCycleTime
   0xFFFF,     //ledPulseOffTime
   0xFF,       //i2cAddress
+
 };
 
 //Cast 32bit address of the object registerMap with uint8_t so we can increment the pointer
@@ -148,9 +149,9 @@ LEDconfig onboardLED; //init the onboard LED
 void setup(void)
 {
 
-  
+
   pinMode(addressPin0, INPUT_PULLUP); //Internally pull up address pins
-  pinMode(addressPin1, INPUT_PULLUP); 
+  pinMode(addressPin1, INPUT_PULLUP);
   pinMode(addressPin2, INPUT_PULLUP);
   pinMode(addressPin3, INPUT_PULLUP);
 
@@ -177,16 +178,17 @@ void setup(void)
 
 #if defined(__AVR_ATmega328P__)
 
-    for (int x = 0; x<100; x++){
-     EEPROM.put(x, 0xFF);
+  for (int x = 0; x < 100; x++) {
+    EEPROM.put(x, 0xFF);
   }
-  
+
   Serial.begin(115200);
   Serial.println("Qwiic Button");
   Serial.print("Address: 0x");
   Serial.println(registerMap.i2cAddress, HEX);
   Serial.print("Device ID: 0x");
   Serial.println(registerMap.id, HEX);
+
 #endif
 
   readSystemSettings(&registerMap); //Load all system settings from EEPROM
@@ -226,6 +228,7 @@ void loop(void)
     else
     { //go to high-impedance mode on the interrupt pin if the interrupt is not triggered
       pinMode(interruptPin, INPUT);
+
     }
 
     //Record anything new to EEPROM (like new LED values)
@@ -306,13 +309,11 @@ void readSystemSettings(memoryMap *map)
   //Read the interrupt bits
   EEPROM.get(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
   if (map->interruptConfig.byteWrapped == 0xFF)
-  { 
-    Serial.println("here");
+  {
     map->interruptConfig.byteWrapped = 0x06; //By default, enable the click and pressed interrupts
     //registerMap.interruptConfig.pressedEnable = true;
     EEPROM.put(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
   }
-  Serial.println("There");
 
   EEPROM.get(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
   if (map->ledPulseGranularity == 0xFF)
@@ -365,7 +366,6 @@ void recordSystemSettings(memoryMap *map)
     //User has set the address out of range
     //Go back to defaults
     map->i2cAddress = DEFAULT_I2C_ADDRESS;
-    startI2C(map); //Determine the I2C address we should be using and begin listening on I2C bus
   }
 
   EEPROM.put(LOCATION_I2C_ADDRESS, map->i2cAddress);
@@ -375,4 +375,6 @@ void recordSystemSettings(memoryMap *map)
   EEPROM.put(LOCATION_LED_PULSECYCLETIME, map->ledPulseCycleTime);
   EEPROM.put(LOCATION_LED_PULSEOFFTIME, map->ledPulseOffTime);
   EEPROM.put(LOCATION_BUTTON_DEBOUNCE_TIME, map->buttonDebounceTime);
+
+  startI2C(map); //Determine the I2C address we should be using and begin listening on I2C bus
 }

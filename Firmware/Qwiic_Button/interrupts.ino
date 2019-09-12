@@ -104,10 +104,6 @@ void buttonInterrupt() {
   registerMap.pressedQueueStatus.isEmpty = ButtonPressed.isEmpty();
   registerMap.pressedQueueStatus.isFull = ButtonPressed.isFull();
 
-  //Set the interrupt bit if it's configured to trigger on a button press
-  if (registerMap.interruptConfig.pressedEnable && registerMap.buttonStatus.isPressed){
-    registerMap.interruptConfig.status = true;
-  }
 
   //Update the ButtonClicked queue and registerMap if necessary
   if (digitalRead(switchPin) == HIGH) { //User has released the button, we have completed a click cycle
@@ -117,8 +113,6 @@ void buttonInterrupt() {
     registerMap.clickedQueueStatus.isEmpty = ButtonClicked.isEmpty();
     registerMap.clickedQueueStatus.isFull = ButtonClicked.isFull();
 
-    //Set the interrupt bit if it's configured to trigger on a button click
-    if (registerMap.interruptConfig.clickedEnable) registerMap.interruptConfig.status = true;
   }
 
 }

@@ -21,19 +21,19 @@
 
 typedef union {
   struct {
-    bool hasBeenClicked : 1; //This is bit 0. Mutable by user, basically behaves like an interrupt. Defaults to zero on POR, but gets set to one every time the button gets clicked. Can be cleared by the user, and that happens regularly in the accompnaying arduino library
-    bool isPressed : 1;  //not mutable by user, set to zero if button is not pushed, set to one if button is pushed
-    bool : 6;
+    bool eventAvailable : 1; //This is bit 0. User mutable, gets set to 1 when a new event occurs. User is expected to write 0 to clear the flag.
+    bool hasBeenClicked : 1; //Defaults to zero on POR. Gets set to one when the button gets clicked. Must be cleared by the user.
+    bool isPressed : 1;  //Gets set to one if button is pushed.
+    bool : 5;
   };
   uint8_t byteWrapped;
 } statusRegisterBitField;
 
 typedef union {
   struct {
-    bool status : 1; //This is bit 0. User mutable, gets set to 1 when the interrupt is triggered. User is expected to write 0 to clear the interrupt.
-    bool clickedEnable : 1; //user mutable, set to 1 to enable an interrupt when the button is clicked. Defaults to 0.
+    bool clickedEnable : 1; //This is bit 0. user mutable, set to 1 to enable an interrupt when the button is clicked. Defaults to 0.
     bool pressedEnable : 1; //user mutable, set to 1 to enable an interrupt when the button is pressed. Defaults to 0.
-    bool: 5;
+    bool: 6;
   };
   uint8_t byteWrapped;
 } interruptConfigBitField;
@@ -57,7 +57,7 @@ typedef struct memoryMap {
   statusRegisterBitField buttonStatus;                    // 0x03
 
   //Interrupt Configuration
-  interruptConfigBitField interruptConfig;                // 0x04
+  interruptConfigBitField interruptConfigure;                // 0x04
   uint16_t buttonDebounceTime;                            // 0x05
 
   //ButtonPressed queue manipulation and status functions

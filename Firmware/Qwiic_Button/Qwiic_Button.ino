@@ -92,8 +92,8 @@ volatile memoryMap registerMap {
   DEVICE_ID,           //id
   FIRMWARE_MINOR,      //firmwareMinor
   FIRMWARE_MAJOR,      //firmwareMajor
-  {0, 0},              //buttonStatus {isPressed, hasBeenClicked}
-  {0, 0, 0},           //interruptConfig {pressedEnable, clickedEnable, status}
+  {0, 0, 0},           //buttonStatus {isPressed, hasBeenClicked, eventAvailable}
+  {0, 0},              //interruptConfig {pressedEnable, clickedEnable}
   0x000A,              //buttonDebounceTime
   {0, 1, 0},           //pressedQueueStatus {isFull, isEmpty, popRequest}
   0x00000000,          //pressedQueueFront
@@ -113,8 +113,8 @@ memoryMap protectionMap = {
   0x00,       //id
   0x00,       //firmwareMinor
   0x00,       //firmwareMajor
-  {0, 1},     //buttonStatus {isPressed, hasBeenClicked}
-  {1, 1, 1},  //interruptConfig {pressedEnable, clickedEnable, status}
+  {1, 1, 1},  //buttonStatus {isPressed, hasBeenClicked, eventAvailable}
+  {1, 1},     //interruptConfig {pressedEnable, clickedEnable}
   0xFFFF,     //buttonDebounceTime
   {0, 0, 1},  //pressedQueueStatus {isFull, isEmpty, popRequest}
   0x00000000, //pressedQueueFront
@@ -211,15 +211,18 @@ void setup(void)
 
 void loop(void)
 {
+
   if (updateFlag == true)
   {
-    
+
     //Calculate LED values based on pulse settings if anything has changed
     onboardLED.update(&registerMap);
 
     //update interruptPin output
-    if (registerMap.interruptConfig.status)
+    if ((registerMap.buttonStatus.isPressed && registerMap.interruptConfigure.pressedEnable) ||
+        (registerMap.buttonStatus.hasBeenClicked && registerMap.interruptConfigure.clickedEnable))
     { //if the interrupt is triggered
+      registerMap.buttonStatus.eventAvailable = true;
       pinMode(interruptPin, OUTPUT); //make the interrupt pin a low-impedance connection to ground
       digitalWrite(interruptPin, LOW);
     }
@@ -227,7 +230,6 @@ void loop(void)
     else
     { //go to high-impedance mode on the interrupt pin if the interrupt is not triggered
       pinMode(interruptPin, INPUT);
-
     }
 
     //Record anything new to EEPROM (like new LED values)
@@ -306,12 +308,12 @@ void readSystemSettings(memoryMap *map)
   }
 
   //Read the interrupt bits
-  EEPROM.get(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
-  if (map->interruptConfig.byteWrapped == 0xFF)
+  EEPROM.get(LOCATION_INTERRUPTS, map->interruptConfigure.byteWrapped);
+  if (map->interruptConfigure.byteWrapped == 0xFF)
   {
-    map->interruptConfig.byteWrapped = 0x06; //By default, enable the click and pressed interrupts
-    //registerMap.interruptConfig.pressedEnable = true;
-    EEPROM.put(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
+    map->interruptConfigure.byteWrapped = 0x06; //By default, enable the click and pressed interrupts
+    //registerMap.interruptConfigure.pressedEnable = true;
+    EEPROM.put(LOCATION_INTERRUPTS, map->interruptConfigure.byteWrapped);
   }
 
   EEPROM.get(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
@@ -366,7 +368,7 @@ void recordSystemSettings(memoryMap *map)
   if (map->i2cAddress >= 0x08 && map->i2cAddress <= 0x77)
   {
     //Address is valid
-    
+
     //Read the value currently in EEPROM. If it's different from the memory map then record the memory map value to EEPROM.
     EEPROM.get(LOCATION_I2C_ADDRESS, i2cAddr);
     if (i2cAddr != map->i2cAddress)
@@ -378,11 +380,11 @@ void recordSystemSettings(memoryMap *map)
   else
   {
     EEPROM.get(LOCATION_I2C_ADDRESS, i2cAddr);
-    map->i2cAddress == i2cAddr; //Return to original address    
+    map->i2cAddress == i2cAddr; //Return to original address
   }
 
 
-  EEPROM.put(LOCATION_INTERRUPTS, map->interruptConfig.byteWrapped);
+  EEPROM.put(LOCATION_INTERRUPTS, map->interruptConfigure.byteWrapped);
   EEPROM.put(LOCATION_LED_BRIGHTNESS, map->ledBrightness);
   EEPROM.put(LOCATION_LED_PULSEGRANULARITY, map->ledPulseGranularity);
   EEPROM.put(LOCATION_LED_PULSECYCLETIME, map->ledPulseCycleTime);

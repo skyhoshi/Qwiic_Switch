@@ -160,7 +160,7 @@ void setup(void)
   digitalWrite(statusLedPin, 0);
 
   pinMode(switchPin, INPUT_PULLUP); //GPIO with internal pullup, goes low when button is pushed
-  pinMode(interruptPin, INPUT);     //High-impedance input until we have an int and then we output low. Pulled high with 10k with cuttable jumper.
+  pinMode(interruptPin, INPUT_PULLUP);     //High-impedance input until we have an int and then we output low. Pulled high with 10k with cuttable jumper.
 
   //Disable ADC
   ADCSRA = 0;
@@ -229,7 +229,7 @@ void loop(void)
 
     else
     { //go to high-impedance mode on the interrupt pin if the interrupt is not triggered
-      pinMode(interruptPin, INPUT);
+      pinMode(interruptPin, INPUT_PULLUP);
     }
 
     //Record anything new to EEPROM (like new LED values)

@@ -93,7 +93,7 @@ volatile memoryMap registerMap {
   FIRMWARE_MINOR,      //firmwareMinor
   FIRMWARE_MAJOR,      //firmwareMajor
   {0, 0, 0},           //buttonStatus {isPressed, hasBeenClicked, eventAvailable}
-  {0, 0},              //interruptConfig {pressedEnable, clickedEnable}
+  {1, 1},              //interruptConfig {pressedEnable, clickedEnable}
   0x000A,              //buttonDebounceTime
   {0, 1, 0},           //pressedQueueStatus {isFull, isEmpty, popRequest}
   0x00000000,          //pressedQueueFront
@@ -160,7 +160,11 @@ void setup(void)
   digitalWrite(statusLedPin, 0);
 
   pinMode(switchPin, INPUT_PULLUP); //GPIO with internal pullup, goes low when button is pushed
+#if defined(__AVR_ATmega328P__)
   pinMode(interruptPin, INPUT_PULLUP);     //High-impedance input until we have an int and then we output low. Pulled high with 10k with cuttable jumper.
+#else
+  pinMode(interruptPin, INPUT);     //High-impedance input until we have an int and then we output low. Pulled high with 10k with cuttable jumper.
+#endif
 
   //Disable ADC
   ADCSRA = 0;
@@ -212,25 +216,28 @@ void setup(void)
 void loop(void)
 {
 
+  //update interruptPin output
+  if ((registerMap.buttonStatus.isPressed && registerMap.interruptConfigure.pressedEnable) ||
+      (registerMap.buttonStatus.hasBeenClicked && registerMap.interruptConfigure.clickedEnable))
+  { //if the interrupt is triggered
+    pinMode(interruptPin, OUTPUT); //make the interrupt pin a low-impedance connection to ground
+    digitalWrite(interruptPin, LOW);
+  }
+  else
+  { //go to high-impedance mode on the interrupt pin if the interrupt is not triggered
+#if defined(__AVR_ATmega328P__)
+    pinMode(interruptPin, INPUT_PULLUP);
+#else
+    pinMode(interruptPin, INPUT);
+#endif
+  }
+
   if (updateFlag == true)
   {
 
     //Calculate LED values based on pulse settings if anything has changed
     onboardLED.update(&registerMap);
 
-    //update interruptPin output
-    if ((registerMap.buttonStatus.isPressed && registerMap.interruptConfigure.pressedEnable) ||
-        (registerMap.buttonStatus.hasBeenClicked && registerMap.interruptConfigure.clickedEnable))
-    { //if the interrupt is triggered
-      registerMap.buttonStatus.eventAvailable = true;
-      pinMode(interruptPin, OUTPUT); //make the interrupt pin a low-impedance connection to ground
-      digitalWrite(interruptPin, LOW);
-    }
-
-    else
-    { //go to high-impedance mode on the interrupt pin if the interrupt is not triggered
-      pinMode(interruptPin, INPUT_PULLUP);
-    }
 
     //Record anything new to EEPROM (like new LED values)
     //It can take ~3.4ms to write a byte to EEPROM so we do that here instead of in an interrupt
@@ -311,8 +318,7 @@ void readSystemSettings(memoryMap *map)
   EEPROM.get(LOCATION_INTERRUPTS, map->interruptConfigure.byteWrapped);
   if (map->interruptConfigure.byteWrapped == 0xFF)
   {
-    map->interruptConfigure.byteWrapped = 0x06; //By default, enable the click and pressed interrupts
-    //registerMap.interruptConfigure.pressedEnable = true;
+    map->interruptConfigure.byteWrapped = 0x03; //By default, enable the click and pressed interrupts
     EEPROM.put(LOCATION_INTERRUPTS, map->interruptConfigure.byteWrapped);
   }
 

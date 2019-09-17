@@ -98,12 +98,13 @@ void buttonInterrupt() {
     return;
   lastClickTime = millis();
 
+  registerMap.buttonStatus.eventAvailable = true;
+
   //Update the ButtonPressed queue and registerMap
   registerMap.buttonStatus.isPressed = !digitalRead(switchPin); //Take the inverse of the switch pin because the switch is pulled up
   ButtonPressed.push(millis() - registerMap.buttonDebounceTime);
   registerMap.pressedQueueStatus.isEmpty = ButtonPressed.isEmpty();
   registerMap.pressedQueueStatus.isFull = ButtonPressed.isFull();
-
 
   //Update the ButtonClicked queue and registerMap if necessary
   if (digitalRead(switchPin) == HIGH) { //User has released the button, we have completed a click cycle
@@ -112,7 +113,6 @@ void buttonInterrupt() {
     ButtonClicked.push(millis() - registerMap.buttonDebounceTime);
     registerMap.clickedQueueStatus.isEmpty = ButtonClicked.isEmpty();
     registerMap.clickedQueueStatus.isFull = ButtonClicked.isFull();
-
   }
 
 }

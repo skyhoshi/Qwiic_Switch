@@ -1,6 +1,6 @@
 /*
   An I2C based Button
-  By: Nathan Seidle and Fischer Moseley
+  By: Nathan Seidle and Fischer Moseley and Priyanka Makin
   SparkFun Electronics
   Date: July 31st, 2019
   License: This code is public domain but you buy me a beer if you use this and
@@ -235,13 +235,15 @@ void loop(void)
   if (updateFlag == true)
   {
 
-    //Calculate LED values based on pulse settings if anything has changed
-    onboardLED.update(&registerMap);
+    
 
 
     //Record anything new to EEPROM (like new LED values)
     //It can take ~3.4ms to write a byte to EEPROM so we do that here instead of in an interrupt
     recordSystemSettings(&registerMap);
+
+    //Calculate LED values based on pulse settings if anything has changed
+    onboardLED.update(&registerMap);
 
     updateFlag = false; //clear flag
   }

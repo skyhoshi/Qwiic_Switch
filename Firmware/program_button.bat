@@ -5,17 +5,18 @@
 @echo -
 @echo Flashing bootloader...
 @avrdude -C avrdude.conf -pattiny84 -cusbtiny -e -Uefuse:w:0xFF:m -Uhfuse:w:0b11010111:m -Ulfuse:w:0xE2:m
-@timeout 1
+
 
 @echo -
-@echo Resetting EEPROM...
-@avrdude -C avrdude.conf -pattiny84 -cusbtiny -Uflash:w:Reset_EEPROM.ino.hex
-@echo EEPROM reset complete...
+@echo Erasing EEPROM...
+@avrdude -C avrdude.conf -pattiny84 -cusbtiny -Uflash:w:EEPROM_erase.ino.hex:i
+
 @timeout 1
 
 @echo -
 @echo Flashing firmware...
-@avrdude -C avrdude.conf -pattiny84 -cusbtiny -Uflash:w:Qwiic_Button_Firmware.ino.hex
+@avrdude -C avrdude.conf -pattiny84 -cusbtiny -e -Uflash:w:Qwiic_Button.ino.hex:i
+
 @echo Done programming! Move on to next board.
 @pause
 
